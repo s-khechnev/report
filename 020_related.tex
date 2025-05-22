@@ -10,18 +10,47 @@ RISC-V --- свободная и открытая архитектура про�
 
 \subsection{Sail}
 Эмулятор архитектуры --- это инструмент, который позволяет исполнять программу для одной архитектуры на процессоре другой (или той же) архитектуры.
-Одним из таких инструментов является Sail.
-На языке Sail реализованы модели множества архитектур, включая X86, Arm, RISC-V и многие другие.
+Sail --- язык для определения эмуляторов процессорных архитектур.
+На языке Sail реализованы модели множества архитектур, включая X86, Arm, RISC-V\footnote{\url{https://github.com/riscv/sail-riscv} (дата обращения: \DTMdate{2025-02-17}).} и многие другие.
 По моделям на данном языке Sail умеет генерировать эмулятор на \OCaml{} или \C{}.
 Кроме генерации эмуляторов, Sail также позволяет верифицировать модели ISA, генерировать и исполнять автоматические тесты, а также исполнять тесты безопасности кода.
 Сам компилятор эмулятора Sail написан на \OCaml{}.
-Код, который отвечает за интерпретацию инструкции содержится в \texttt{execute} функциях.
-Кроме этого, для каждой инструкции существует функция \texttt{encdec}, которая кодирует и декордирует инструкцию, функция \texttt{assembly}, которая отвечает за представление инструкции в виде строки.
 
-\begin{lstlisting}[caption={Пример определения семантики исполнения инструкций addi, slti, sltiu, andi, ori, xori на Sail}, language={}, frame=single, label=itype]
-mapping clause encdec = ITYPE(imm, rs1, rd, op)
+\subsubsection{Модель sail-riscv}
+Sail-riscv --- это формальная модель RISC-V ISA, написанная на Sail.
+Сама модель представляет из себя интерпретатор.
+Во-первых, для всех инструкций задаётся Abstract Syntax Tree. Причём один узел AST может представлять множество инструкций.
+Например, на листинге \ref{itype} узел \texttt{ITYPE}, который параметризован 12-ти битным непосредственным (immediate) значением, индексами выходного и входного регистров и интерпретируемой операцией, представляет инструкции \texttt{addi}, \texttt{slti}, \texttt{sltiu}, \texttt{xori}, \texttt{ori} и \texttt{andi}.
+
+\bigbreak
+\bigbreak
+
+\begin{lstlisting}[caption={Пример определения узла AST в sail-riscv}, language={}, frame=single, label=itype]
+  enum iop = {RISCV_ADDI, RISCV_SLTI, RISCV_SLTIU,
+              RISCV_XORI, RISCV_ORI, RISCV_ANDI}
+
+  union clause ast = ITYPE : (bits(12), regidx, regidx, iop)
+\end{lstlisting}
+
+Затем для каждого узла AST определяются функции \texttt{encdec} --- кодирования и декодирования 32-ух битного кода операции (opcode) и AST.
+
+\begin{lstlisting}[caption={Пример определения функции кодирования и декодирования инструкций в sail-riscv}, language={}, frame=single]
+  mapping encdec_iop : iop <-> bits(3) = {
+    RISCV_ADDI  <-> 0b000,
+    RISCV_SLTI  <-> 0b010,
+    RISCV_SLTIU <-> 0b011,
+    RISCV_ANDI  <-> 0b111,
+    RISCV_ORI   <-> 0b110,
+    RISCV_XORI  <-> 0b100
+  }
+
+  mapping clause encdec = ITYPE(imm, rs1, rd, op)
     <-> imm @ rs1 @ encdec_iop(op) @ rd @ 0b0010011
+\end{lstlisting}
 
+Код, который отвечает за интерпретацию инструкции содержится в \texttt{execute} функциях, которые в качестве аргумента содержат интерпретируемый узел AST.
+
+\begin{lstlisting}[caption={Пример определения семантики исполнения инструкций addi, slti, sltiu, andi, ori и xori на Sail}, language={}, frame=single]
 function clause execute (ITYPE (imm, rs1, rd, op)) = {
   let rs1_val = X(rs1);               // read the rs1
   let immext : xlenbits = EXTS(imm);  // sign-extend imm
@@ -36,21 +65,27 @@ function clause execute (ITYPE (imm, rs1, rd, op)) = {
   X(rd) = result;                     // write result to rd
   RETIRE_SUCCESS                      // successful termination
 }
-
-mapping itype_mnemonic : iop <-> string = {
-  RISCV_ADDI  <-> "addi",
-  RISCV_SLTI  <-> "slti",
-  RISCV_SLTIU <-> "sltiu",
-  RISCV_XORI  <-> "xori",
-  RISCV_ORI   <-> "ori",
-  RISCV_ANDI  <-> "andi"
-}
-
-mapping clause assembly = ITYPE(imm, rs1, rd, op)
-  <-> itype_mnemonic(op) ^ spc() ^ reg_name(rd) ^ sep()
-      ^ reg_name(rs1) ^ sep() ^ hex_bits_signed_12(imm)
-
 \end{lstlisting}
+
+Наконец, для каждого узла AST определяются функции \texttt{assembly}, которые отображают узлы AST в строки (мнемоники).
+
+\begin{lstlisting}[caption={Пример определения функции assembly для узла ITYPE на Sail}, language={}, frame=single, label=itype_assembly]
+  mapping itype_mnemonic : iop <-> string = {
+    RISCV_ADDI  <-> "addi",
+    RISCV_SLTI  <-> "slti",
+    RISCV_SLTIU <-> "sltiu",
+    RISCV_XORI  <-> "xori",
+    RISCV_ORI   <-> "ori",
+    RISCV_ANDI  <-> "andi"
+  }
+
+  mapping clause assembly = ITYPE(imm, rs1, rd, op)
+    <-> itype_mnemonic(op) ^ spc() ^ reg_name(rd) ^ sep()
+        ^ reg_name(rs1) ^ sep() ^ hex_bits_signed_12(imm)
+\end{lstlisting}
+
+
+
 
 \subsection{LLVM TableGen}
 
@@ -78,12 +113,12 @@ def ADDI  : ALU_ri<0b000, "addi">;
 
 В описании инструкции на TableGen может, например, постулироваться, что некоторые команды процессора имеют соответствующие входные и выходные регистры, (не)могут писать в память, являются (не)коммутативными, сложность операций и т.п.
 
-\subsection{Прототип инструмента}
+\subsection{Прототип анализатора}
 
 Для исследования предметной области моим научным руководителем уже была начата разработка анализатора для валидации.
 Данные в анализатор из LLVM поступают в виде \texttt{JSON}, код на Sail анализируется как есть.
 Сам Sail реализован на языке \OCaml, и анализатор использует компилятор Sail как библиотеку.
-Анализатор умеет находить исполняемые спецификации для инструкций RISC-V и запускать на них тривиальные анализы (а именно наивную проверку выходных аргументов инструкций).
+Анализатор умел находить исполняемые спецификации для инструкций RISC-V и запускать на них тривиальные анализы, а именно наивную проверку выходных аргументов инструкций.
 
 % \emph{Обзор существующих решений должен быть.}
 % Здесь нужно писать, что индустрия и наука уже сделали по вашей теме.

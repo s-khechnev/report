@@ -3,78 +3,141 @@
 
 \section{Особенности реализации}
 
-Далее будут кратко описаны особенности реализации анализатора.
+% Далее будут описаны особенности реализации анализатора.
 
-\subsection{Доработка поиска выходных регистров в Sail}
+Как было сказано ранее эмулятор sail-riscv представляет из себя интерпретатор некоторого AST, каждый узел которого параметризован некоторыми параметрами.
+Причём всякая специализация узла AST представляет из себя конкретную инструкцию.
+Например, специализация узла листинга \ref{itype} \texttt{ITYPE (imm, rs1, rs2, RISCV\_ADDI)} представляет из себя инструкцию \texttt{addi rd, rs1, imm}.
+Специализировать имеет смысл только параметры типа \texttt{bool} или перечисления (\texttt{enum}).
 
-Для поиска выходных регистров анализатор обходит функции, которые интерпретируют поведение инструкций (\texttt{execute} функции), и ищет присвоение какой-либо переменной результата вызова специальных функций для чтения значений из регистров.
-Однако для многих инструкций анализатор не находил выходные регистры.
-Проблема заключалось в том, что анализатор не учитывал некоторые функции для чтения из регистров.
+\subsection{Сопоставление узлов AST и мнемоник}
 
-\subsection{Реализация поиска входных аргументов в Sail}
+Во-первых, необохдимо было определить за какие инструкции отвечает каждая специализация узла AST в эмуляторе.
+Для этого производился анализ специализаций функций \texttt{assembly}, которые как раз отвечают за отображение узлов AST в мнемоники инструкций.
 
-Для реализации поиска входных аргументов инструкции был реализован следующий алгоритм.
+\subsection{Поиск входных и выходных операндов}
 
-\begin{enumerate}
-      \item Обходим функции, которые интерпретируют исполнение инструкций (\texttt{execute} функции).
-      \item Запоминаем все регистры, из которых производилось чтение, или регистры, которые передавались другим \texttt{execute} функциям.
-      \item производим анализ алиасов\footnote{\url{https://en.wikipedia.org/wiki/Alias_analysis} (дата обращения: \DTMdate{2024-12-17}).}.
-\end{enumerate}
+В модели sail-riscv для взаимодействия с регистрами используются следующие функции:
+\begin{itemize}
+      \item \texttt{rX} для чтения, \texttt{wX} для записи GPR регистров;
+      \item \texttt{rF} для чтения, \texttt{wF} для записи вещественных регистров;
+      \item \texttt{rV} для чтения, \texttt{wV} для записи векторных регистров.
+\end{itemize}
 
+Для поиска входных и выходных операндов строился граф вызовов всех функций для всех специализаций функций \texttt{execute}, которые отвечают за интерпретацию поведения инструкций.
+Затем производился обход этого графа вызовов и определение того, какие функции с какими аргументами вызывали функции для взаимодействия с регистрами.
+
+Дополнительно для каждой функции производился анализ алиасов\footnote{\url{https://en.wikipedia.org/wiki/Alias_analysis} (дата обращения: \DTMdate{2024-12-17}).}.
 \begin{lstlisting}[caption={Пример функции, которая интерпретирует выполнение инструкции c.addi4spn}, language=Caml, frame=single, label=alias]
 function clause execute (C_ADDI4SPN(rdc, nzimm)) = {
-  let imm : bits(12) = (0b00 @ nzimm @ 0b00);
-  let rd = creg2reg_idx(rdc);
-  execute(ITYPE(imm, sp, rd, RISCV_ADDI))
+      let imm : bits(12) = (0b00 @ nzimm @ 0b00);
+      let rd = creg2reg_idx(rdc);
+      execute(ITYPE(imm, sp, rd, RISCV_ADDI))
+}
+\end{lstlisting}
+Если не производить анализ алиасов, то, например, на листинге \ref{alias} входным регистром был бы регистр \texttt{rd}, но на самом деле входным регистром является регистр \texttt{rdc}.
+
+\subsection{Анализ обращения инструкции к памяти}
+
+Для работы с памятью в sail-riscv используются функции \texttt{read\_ram} и \texttt{write\_ram}.
+Для того чтобы определить читает или пишет инструкция память, для каждой специализации функции \texttt{execute} проверялась достижимость вершин \texttt{read\_ram} и \texttt{write\_ram} в ранее определённом графе вызовов всех функций.
+
+Однако любая инструкция, которая работает с адресами, для трансляции виртуального адреса в физический обращалась к таблице виртуальных адресов. И при чтении таблицы виртуальных адресов могла происходить как запись в память, так и чтение из памяти.
+\begin{itemize}
+      \item Чтение из памяти могло происходить в случае, если при трансляции виртуального адреса в физический происходил TLB miss. Тогда необходимо было прочитать таблицу виртуальных адресов из памяти.
+      \item Запись в память могла происходить тогда, когда при трансляции виртуального адреса в физический необходимо было обновить бит A или D у записи таблицы виртуальных адресов.
+\end{itemize}
+
+По требованию заказчика обращения к памяти при трансляции адресов игнорировались. Для этого при решении задачи достижимости вершин \texttt{read\_ream} и \texttt{write\_ram} в графе вызовов игнорировался вызов функции \texttt{translateAddr}, отвечающей за трансляцию виртуального адреса в физический.
+
+\subsection{Особенности расширения <<P>> в sail-riscv-p}
+
+Проект sail-riscv-p\footnote{\url{https://github.com/umcann123/sail-riscv-p} (дата обращения: \DTMdate{2024-12-17}).} --- это форк эмулятора sail-riscv с реализованным расширением <<P>> (packed SIMD).
+
+\begin{lstlisting}[caption={Пример функции \texttt{execute}, которая может интерпретировать регистры как парные}, language=Caml, frame=single, label=depxlen]
+function clause execute (PEXT_64BITS_ADD_SUB(rs2, rs1, rd, op))
+= {
+  results : bits(64) = zeros();
+  rs1_val : bits(64) = zeros();
+  rs2_val : bits(64) = zeros();
+  if sizeof(xlen) == 32
+  then {
+    rs1_val = X(rs1 | 0b00001) @ X(rs1 & 0b11110);
+    rs2_val = X(rs2 | 0b00001) @ X(rs2 & 0b11110);
+  }
+  else {
+    rs1_val = X(rs1);
+    rs2_val = X(rs2);
+  };
+  results = match op {
+    ADD64   => rs1_val + rs2_val,
+    ... \\ etc
+  };
+  if sizeof(xlen) == 32
+  then {
+    X(rd | 0b00001) = results[63..32];
+    X(rd & 0b11110) = results[31..0];
+  }
+  else X(rd) = results;
+  RETIRE_SUCCESS
 }
 \end{lstlisting}
 
-Важно произвести анализ алиасов.
-Если этого не сделать, то, например, на листинге \ref{alias} входным регистром был бы регистр \texttt{rd}, но на самом деле входным регистром является регистр \texttt{rdc}.
+На листинге \ref{depxlen} видно, что функция \texttt{PEXT\_64BITS\_ADD\_SUB} зависит от \texttt{xlen} --- разрядности RISC-V, и в зависимости от \texttt{xlen} функция \texttt{execute} работает с регистрами по разному.
+В случае если \texttt{xlen} равен 32, то входные и выходные регистры интерпретируются как парные, иначе, если \texttt{xlen} не равно 32, то входные и выходные регистры интерпретируются как обычно.
 
-\subsection{Анализ assembly функций в Sail}
+Чтобы определить интерпретирует ли инструкиция регистры как парные, производилось приведение программы к ANF\footnote{\url{https://en.wikipedia.org/wiki/A-normal_form} (дата обращения: \DTMdate{2024-12-17})} форме, а затем строился и анализировался data flow graph.
 
-Для того чтобы понимать какую именно инструкцию интерпретирует какая-то \texttt{execute} функция был реализован анализ функции \texttt{assembly}, которая отвечает за представление инструкции в виде строки.
-Так, например, на листинге \ref{itype} глядя на функцию \texttt{assembly} не трудно понять, что \texttt{ITYPE} отвечает за инструкции \texttt{addi}, \texttt{slti}, \texttt{sltiu}, \texttt{xori}, \texttt{ori}, \texttt{andi}.
+Во-первых, для того чтобы аргументами всех функций были только тривиальные значения (константы и переменные) было реализовано приведение представления программы к ANF форме.
+\begin{lstlisting}[caption={Вызов чтения из регистра до ANF}, language={Caml}, frame=single]
+X(rs1 | 0b00001)
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Вызов чтения из регистра после ANF}, language={Caml}, frame=single]
+let a1 = rs1 | 0b00001 in X(a1)
+\end{lstlisting}
+
+Затем анализировался data flow graph каждой нормализованной \texttt{execute} функции.
 
 
-\subsection{Найденные расхождения}
+\subsection{CI}
 
-При помощи анализатора были найдены следующие расхождения:
+Был добавлен CI, который проверяет успешность сборки анализатора и проход тестов.
+
+\section{Найденные расхождения}
+
+Для LLVM версии 19 и sail-riscv\footnote{\url{https://github.com/riscv/sail-riscv/commits/05b845c91d1c1db7b361fc8d06e815b54ca0b07a} (дата обращения: \DTMdate{2025-05-17}).} при помощи анализатора были найдены следующие расхождения:
 
 \begin{enumerate}
-      \item \texttt{sp} не является явным аргументом в Sail для инструкций:
-      \begin{itemize}
-            \item \texttt{c.addi16sp},
-            \item \texttt{c.addi4spn},
-            \item \texttt{c.fldsp},
-            \item \texttt{c.flwsp},
-            \item \texttt{c.fsdsp},
-            \item \texttt{c.fswsp},
-            \item \texttt{c.ldsp},
-            \item \texttt{c.lwsp},
-            \item \texttt{c.sdsp},
-            \item \texttt{c.swsp}.
-      \end{itemize}
-      \item \texttt{Zreg} является неявным входным регистром в Sail для инструкций:
-      \begin{itemize}
-            \item \texttt{c.beqz},
-            \item \texttt{c.bnez},
-            \item \texttt{c.fldsp},
-            \item \texttt{c.li},
-            \item \texttt{c.mv}.
-      \end{itemize}
-      \item \texttt{Zreg} является неявным выходным регистром в Sail для инструкций:
-      \begin{itemize}
-            \item \texttt{c.j},
-            \item \texttt{c.jr}.
-      \end{itemize}
-      \item \texttt{Ra} является неявным выходным регистром в Sail для инструкций:
-      \begin{itemize}
-            \item \texttt{c.jal},
-            \item \texttt{c.jalr}.
-      \end{itemize}
+      \item \texttt{sp} не является явным аргументом в sail-riscv для инструкций:
+      \texttt{c.addi16sp}, \texttt{c.addi4spn}, \texttt{c.fldsp}, \texttt{c.flwsp}, \texttt{c.fsdsp}, \texttt{c.fswsp}, \texttt{c.ldsp}, \texttt{c.lwsp}, \texttt{c.sdsp}, \texttt{c.swsp}.
+
+      % \item \texttt{Zreg} является неявным входным регистром в Sail для инструкций:
+      % \texttt{c.beqz}, \texttt{c.bnez}, \texttt{c.fldsp}, \texttt{c.li}, \texttt{c.mv}.
+
+      % \item \texttt{Zreg} является неявным выходным регистром в Sail для инструкций:
+      % \texttt{c.j}, \texttt{c.jr}.
+
+      \item \texttt{RA} является неявным out регистром в sail-riscv для инструкций:
+      \texttt{c.jal}, \texttt{c.jalr}
+
+      \item В sail-riscv \texttt{vd} --- входной регистр для инструкций:
+      \texttt{vadc.vim} \texttt{vadc.vvm} \texttt{vadc.vxm} \texttt{vcompress.vm} \texttt{vfmerge.vfm} \texttt{vmadc.vi} \texttt{vmadc.vim} \texttt{vmadc.vv} \texttt{vmadc.vvm} \texttt{vmadc.vx} \texttt{vmadc.vxm} \texttt{vmand.mm} \texttt{vmandn.mm} \texttt{vmerge.vim} \texttt{vmerge.vvm} \texttt{vmerge.vxm} \texttt{vmnand.mm} \texttt{vmnor.mm} \texttt{vmor.mm} \texttt{vmorn.mm} \texttt{vmsbc.vv} \texttt{vmsbc.vvm} \texttt{vmsbc.vx} \texttt{vmsbc.vxm} \texttt{vmxnor.mm} \texttt{vmxor.mm} \texttt{vsbc.vvm} \texttt{vsbc.vxm}.
+
+      \item В sail-riscv \texttt{vd} и (неявно) \texttt{v0} --- входные регистры для инструкций:
+      \texttt{vaaddu.vv} \texttt{vaaddu.vx} \texttt{vaadd.vv} \texttt{vaadd.vx} \texttt{vadd.vi} \texttt{vadd.vv} \texttt{vadd.vx} \texttt{vand.vi} \texttt{vand.vv} \texttt{vand.vx} \texttt{vasubu.vv} \texttt{vasubu.vx} \texttt{vasub.vv} \texttt{vasub.vx} \texttt{vdivu.vv} \texttt{vdivu.vx} \texttt{vdiv.vv} \texttt{vdiv.vx} \texttt{vfadd.vf} \texttt{vfadd.vv} \texttt{vfclass.v} \texttt{vfcvt.f.xu.v} \texttt{vfcvt.f.x.v} \texttt{vfcvt.rtz.x.f.v} \texttt{vfcvt.rtz.xu.f.v} \texttt{vfcvt.x.f.v} \texttt{vfcvt.xu.f.v} \texttt{vfdiv.vf} \texttt{vfdiv.vv} \texttt{vfirst.m} \texttt{vfmacc.vf} \texttt{vfmacc.vv} \texttt{vfmadd.vf} \texttt{vfmadd.vv} \texttt{vfmax.vf} \texttt{vfmax.vv} \texttt{vfmin.vf} \texttt{vfmin.vv} \texttt{vfmsac.vf} \texttt{vfmsac.vv} \texttt{vfmsub.vf} \texttt{vfmsub.vv} \texttt{vfmul.vf} \texttt{vfmul.vv} \texttt{vfmv.s.f} \texttt{vfmv.v.f} \texttt{vfncvt.f.f.w} \texttt{vfncvt.f.xu.w} \texttt{vfncvt.f.x.w} \texttt{vfncvt.rod.f.f.w} \texttt{vfncvt.rtz.x.f.w}...\footnote{Полный список разхождений --- \url{https://github.com/s-khechnev/llvm_td_lint_playground/blob/ins_outs_regs/Results.md} (дата обращения: \DTMdate{2025-03-12}).}.
+
+
 \end{enumerate}
+
+Для реализации расширения <<P>> в LLVM и в sail-riscv-p\footnote{\url{https://github.com/umcann123/sail-riscv-p} (дата обращения: \DTMdate{2024-12-17}).} при помощи анализатора были найдены следующие расхождения:
+
+\begin{itemize}
+      \item В sail-riscv-p \texttt{rd} является входным регистром для инструкций:
+      \texttt{ave}, \texttt{bitrev}, \texttt{kaddw}, \texttt{kdmbb}, \texttt{kdmbb16}, \texttt{kdmbt}, \texttt{kdmbt16}, \texttt{kdmtt}, \texttt{kdmtt16}, \texttt{khmbb16}, \texttt{khmbt16}, \texttt{khmtt16}, \texttt{kmda}, \texttt{kmmwb2}, \texttt{kmmwb2.u}, \texttt{kmmwt2}, \texttt{kmmwt2.u}, \texttt{kmxda}, \texttt{ksllw}, \texttt{kslraw}, \texttt{kslraw.u}, \texttt{ksubw}, \texttt{kwmmul}, \texttt{kwmmul.u}, \texttt{smbb16}, \texttt{smbt16}, \texttt{smdrs}, \texttt{smds}, \texttt{smmul}, \texttt{smmul.u}, \texttt{smmwb}, \texttt{smmwb.u}, \texttt{smmwt}, \texttt{smmwt.u}, \texttt{smtt16}, \texttt{smxds}, \texttt{sra.u}, \texttt{ukaddw}, \texttt{uksubw}
+\end{itemize}
+
+
 
 % Реализация в широком смысле: что таки было сделано.
 % Часто это на самом деле несколько отдельных разделов, по одному на каждую \enquote{реализационную} задачу из постановки.
