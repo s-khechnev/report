@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<svg width="234pt" height="141pt" viewBox="0.00 0.00 233.59 140.80" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 136.8)">
+<title>call_graph</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-136.8 229.5852,-136.8 229.5852,4 -4,4"/>
+<!-- execute_RTYPE -->
+<g id="node1" class="node">
+<title>execute_RTYPE</title>
+<path fill="none" stroke="#000000" d="M168.2805,-132.8C168.2805,-132.8 40.8899,-132.8 40.8899,-132.8 34.8899,-132.8 28.8899,-126.8 28.8899,-120.8 28.8899,-120.8 28.8899,-108.8 28.8899,-108.8 28.8899,-102.8 34.8899,-96.8 40.8899,-96.8 40.8899,-96.8 168.2805,-96.8 168.2805,-96.8 174.2805,-96.8 180.2805,-102.8 180.2805,-108.8 180.2805,-108.8 180.2805,-120.8 180.2805,-120.8 180.2805,-126.8 174.2805,-132.8 168.2805,-132.8"/>
+<text text-anchor="middle" x="104.5852" y="-110.6" font-family="Times,serif" font-size="14.00" fill="#000000">RTYPE (RISCV_ADD)</text>
+</g>
+<!-- rX -->
+<g id="node2" class="node">
+<title>rX</title>
+<polygon fill="#00ff00" stroke="#000000" points="68.5852,-36 14.5852,-36 14.5852,0 68.5852,0 68.5852,-36"/>
+<text text-anchor="middle" x="41.5852" y="-13.8" font-family="Times,serif" font-size="14.00" fill="#000000">rX</text>
+</g>
+<!-- execute_RTYPE&#45;&gt;rX -->
+<g id="edge1" class="edge">
+<title>execute_RTYPE-&gt;rX</title>
+<path fill="none" stroke="#000000" d="M28.7356,-96.8337C18.7839,-91.3401 9.8474,-84.1667 3.48,-74.8 -3.4206,-64.6489 1.464,-53.4349 9.7416,-43.6714"/>
+<polygon fill="#000000" stroke="#000000" points="16.9472,-36.2002 13.2442,-46.522 13.4762,-39.7991 10.0052,-43.3981 10.0052,-43.3981 10.0052,-43.3981 13.4762,-39.7991 6.7661,-40.2742 16.9472,-36.2002 16.9472,-36.2002"/>
+<text text-anchor="middle" x="12.1378" y="-62.2" font-family="Times,serif" font-size="14.00" fill="#000000">rs1</text>
+</g>
+<!-- execute_RTYPE&#45;&gt;rX -->
+<g id="edge2" class="edge">
+<title>execute_RTYPE-&gt;rX</title>
+<path fill="none" stroke="#000000" d="M92.7354,-96.5927C83.2319,-81.9905 69.7553,-61.2836 59.0207,-44.7899"/>
+<polygon fill="#000000" stroke="#000000" points="53.3819,-36.1257 62.6082,-42.0523 56.1093,-40.3163 58.8367,-44.507 58.8367,-44.507 58.8367,-44.507 56.1093,-40.3163 55.0651,-46.9616 53.3819,-36.1257 53.3819,-36.1257"/>
+<text text-anchor="middle" x="85.1378" y="-62.2" font-family="Times,serif" font-size="14.00" fill="#000000">rs2</text>
+</g>
+<!-- wX -->
+<g id="node3" class="node">
+<title>wX</title>
+<polygon fill="#ffff00" stroke="#000000" points="225.5852,-36 171.5852,-36 171.5852,0 225.5852,0 225.5852,-36"/>
+<text text-anchor="middle" x="198.5852" y="-13.8" font-family="Times,serif" font-size="14.00" fill="#000000">wX</text>
+</g>
+<!-- execute_RTYPE&#45;&gt;wX -->
+<g id="edge3" class="edge">
+<title>execute_RTYPE-&gt;wX</title>
+<path fill="none" stroke="#000000" d="M122.2659,-96.5927C136.8396,-81.5848 157.6753,-60.1285 173.8952,-43.4254"/>
+<polygon fill="#000000" stroke="#000000" points="180.9838,-36.1257 177.2455,-46.4347 177.5005,-39.7127 174.0172,-43.2998 174.0172,-43.2998 174.0172,-43.2998 177.5005,-39.7127 170.7889,-40.1648 180.9838,-36.1257 180.9838,-36.1257"/>
+<text text-anchor="middle" x="162.4155" y="-62.2" font-family="Times,serif" font-size="14.00" fill="#000000">rd</text>
+</g>
+</g>
+</svg>
