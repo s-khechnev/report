@@ -4,17 +4,20 @@
 \section{Обзор}
 \label{sec:relatedworks}
 
+В настоящем разделе будет представлен обзор предметной области.
+
 \subsection{RISC-V}
 RISC-V --- свободная и открытая архитектура процессоров, впервые представленная в 2010 году в университете Беркли, США \cite{waterman2016design}.
-Создана по концепции RISC (Reduced Instruction Set Computer) \cite{jamil1995risc}, то есть обладает сравнительно небольшим набором инструкций с возможностью дополнения с помощью расширений.
+Создана по концепции RISC (Reduced Instruction Set Computer) \cite{jamil1995risc}, то есть обладает довольно скромным набором инструкций, но с возможностью дополнения при помощи расширений.
+
 
 \subsection{Sail}
 Эмулятор архитектуры --- это инструмент, который позволяет исполнять программу для одной архитектуры на процессоре другой (или той же) архитектуры.
 Sail --- язык для определения эмуляторов процессорных архитектур.
-На языке Sail реализованы модели множества архитектур, включая X86, Arm, RISC-V\footnote{\url{https://github.com/riscv/sail-riscv} (дата обращения: \DTMdate{2025-02-17}).} и многие другие.
+На языке Sail реализованы модели множества архитектур, включая X86\footnote{\url{https://github.com/rems-project/sail-x86-from-acl2} (дата обращения: \DTMdate{2025-02-17}).}, Arm\footnote{\url{https://github.com/rems-project/sail-arm} (дата обращения: \DTMdate{2025-02-17}).} \cite{armstrong2019isa}, RISC-V\footnote{\url{https://github.com/riscv/sail-riscv} (дата обращения: \DTMdate{2025-02-17}).} \cite{armstrong2019isa} и другие.
 По моделям на данном языке Sail умеет генерировать эмулятор на \OCaml{} или \C{}.
-Кроме генерации эмуляторов, Sail также позволяет верифицировать модели ISA, генерировать и исполнять автоматические тесты, а также исполнять тесты безопасности кода.
-Сам компилятор эмулятора Sail написан на \OCaml{}.
+Кроме генерации эмуляторов по моделям, Sail также позволяет генерировать и исполнять автоматические тесты, исполнять тесты безопасности кода, а также верифицировать модели ISA.
+Сам компилятор языка Sail написан на \OCaml{}.
 
 \subsubsection{Модель sail-riscv}
 Sail-riscv --- это формальная модель RISC-V ISA, написанная на Sail.
@@ -22,8 +25,8 @@ Sail-riscv --- это формальная модель RISC-V ISA, написа
 Во-первых, для всех инструкций задаётся Abstract Syntax Tree. Причём один узел AST может представлять множество инструкций.
 Например, на листинге \ref{itype} узел \texttt{ITYPE}, который параметризован 12-ти битным непосредственным (immediate) значением, индексами выходного и входного регистров и интерпретируемой операцией, представляет инструкции \texttt{addi}, \texttt{slti}, \texttt{sltiu}, \texttt{xori}, \texttt{ori} и \texttt{andi}.
 
-\bigbreak
-\bigbreak
+% \bigbreak
+% \bigbreak
 
 \begin{lstlisting}[caption={Пример определения узла AST в sail-riscv}, language={}, frame=single, label=itype]
   enum iop = {RISCV_ADDI, RISCV_SLTI, RISCV_SLTIU,
@@ -32,9 +35,9 @@ Sail-riscv --- это формальная модель RISC-V ISA, написа
   union clause ast = ITYPE : (bits(12), regidx, regidx, iop)
 \end{lstlisting}
 
-Затем для каждого узла AST определяются функции \texttt{encdec} --- кодирования и декодирования 32-ух битного кода операции (opcode) и AST.
+Затем для каждого узла AST определяются \texttt{encdec} функции, которые предназначены для кодирования и декодирования кода операции (opcode) в AST модели.
 
-\begin{lstlisting}[caption={Пример определения функции кодирования и декодирования инструкций в sail-riscv}, language={}, frame=single]
+\begin{lstlisting}[caption={Пример определения функции кодирования и декодирования инструкций в sail-riscv}, language={}, frame=single, label=encdec_itype]
   mapping encdec_iop : iop <-> bits(3) = {
     RISCV_ADDI  <-> 0b000,
     RISCV_SLTI  <-> 0b010,
@@ -47,15 +50,16 @@ Sail-riscv --- это формальная модель RISC-V ISA, написа
   mapping clause encdec = ITYPE(imm, rs1, rd, op)
     <-> imm @ rs1 @ encdec_iop(op) @ rd @ 0b0010011
 \end{lstlisting}
+На листинге \ref{encdec_itype} представлено определение отображения (mapping) декодирования кода инструкции в узел \texttt{ITYPE} и, наоборот, кодирование параметризованного узла \texttt{ITYPE} в код инструкции. Из определения этого отображения можно увидеть, что первые двенадцать бит кода инструкции кодируют immediate значение, следующие 5 бит кодируют регистр, а именно регистр rs1 (source register); следующие 3 бита кодируют целочисленную операцию, которую будет представлять узел \texttt{ITYPE}, следующие 5 бит кодируют регистр rd (destination register).
 
-Код, который отвечает за интерпретацию инструкции содержится в \texttt{execute} функциях, которые в качестве аргумента содержат интерпретируемый узел AST.
+Код, который отвечает за определение семантики исполнения инструкции содержится в \texttt{execute} функциях. Функции \texttt{execute} в качестве аргумента принимают интерпретируемый узел AST.
 
-\begin{lstlisting}[caption={Пример определения семантики исполнения инструкций addi, slti, sltiu, andi, ori и xori на Sail}, language={}, frame=single]
+\begin{lstlisting}[caption={Пример определения семантики исполнения инструкций addi, slti, sltiu, andi, ori и xori в sail-riscv}, language={}, frame=single, label=execute_itype]
 function clause execute (ITYPE (imm, rs1, rd, op)) = {
   let rs1_val = X(rs1);               // read the rs1
   let immext : xlenbits = EXTS(imm);  // sign-extend imm
   let result : xlenbits = match op {  // compute the result
-    RISCV_ADDI  => rs1_val + immext,  // for ADDI, do an addition
+    RISCV_ADDI  => rs1_val + immext,  // for addi, do addition
     RISCV_SLTI  => EXTZ(rs1_val <_s immext), // ...etc
     RISCV_SLTIU => EXTZ(rs1_val <_u immext),
     RISCV_ANDI  => rs1_val & immext,
@@ -66,10 +70,12 @@ function clause execute (ITYPE (imm, rs1, rd, op)) = {
   RETIRE_SUCCESS                      // successful termination
 }
 \end{lstlisting}
+На листинге \ref{execute_itype} определена функция, которая задаёт семантику исполнения узла \texttt{ITYPE}. Во-первых, считывается значение из регистра rs1, затем знаково расширяется immediate значение до ширины текущей битности RISC-V, далее в зависимости от параметра \texttt{op}, представляющего целочисленную операцию, вычисляется результат, в конце вычисленный результат записывается в регистр rd.
 
 Наконец, для каждого узла AST определяются функции \texttt{assembly}, которые отображают узлы AST в строки (мнемоники).
+На листинге \ref{itype_assembly} как раз определена такая функция для узла \texttt{ITYPE}. Из определения видно, что узел \texttt{ITYPE} отображается в зависимости от параметра \texttt{op} в инструкции, которые представляют различные целочисленные операции.
 
-\begin{lstlisting}[caption={Пример определения функции assembly для узла ITYPE на Sail}, language={}, frame=single, label=itype_assembly]
+\begin{lstlisting}[caption={Пример определения функции отображения в мнемонику в sail-riscv}, language={}, frame=single, label=itype_assembly]
   mapping itype_mnemonic : iop <-> string = {
     RISCV_ADDI  <-> "addi",
     RISCV_SLTI  <-> "slti",
@@ -84,12 +90,9 @@ function clause execute (ITYPE (imm, rs1, rd, op)) = {
         ^ reg_name(rs1) ^ sep() ^ hex_bits_signed_12(imm)
 \end{lstlisting}
 
-
-
-
 \subsection{LLVM TableGen}
 
-LLVM --- это инфраструктура для разработки компиляторов, созданная в 2003 году в Иллинойсском университете.
+LLVM \cite{lattner2004llvm} --- это инфраструктура для разработки компиляторов, созданная в 2003 году в Иллинойсском университете.
 LLVM поддерживает широкий спектр целевых платформ, включая популярные x86 и ARM, так и молодые архитектуры, такие как RISC-V.
 Важную роль в бэкендах LLVM играет TableGen.
 
@@ -99,7 +102,7 @@ TableGen --- это декларативный язык, используемы�
 Файлы TableGen имеют расширение \texttt{.td}.
 Инструментами LLVM можно \texttt{.td} файлы скомпилировать в \texttt{JSON}.
 
-\begin{lstlisting}[caption={Описание инструкции addi при помощи TableGen}, language={}, frame=single, mathescape = true]
+\begin{lstlisting}[caption={Описание инструкции addi при помощи TableGen}, language={}, frame=single, mathescape=true, label=addi_td]
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0 in
 class ALU_ri<bits<3> funct3, string opcodestr>
     : RVInstI<funct3, OPC_OP_IMM, (outs GPR:$\dollar$rd),
@@ -111,14 +114,24 @@ let isReMaterializable = 1, isAsCheapAsAMove = 1 in
 def ADDI  : ALU_ri<0b000, "addi">;
 \end{lstlisting}
 
-В описании инструкции на TableGen может, например, постулироваться, что некоторые команды процессора имеют соответствующие входные и выходные регистры, (не)могут писать в память, являются (не)коммутативными, сложность операций и т.п.
+В описании инструкции на TableGen постулируются следующие свойства:
+\begin{itemize}
+  \item входные и выходные операнды, т.~е операнды из которых считываются и записываются значения;
+  \item взаимодействие с памятью, т.~е может ли инструкция читать или писать память;
+  \item коммутативность;
+  \item сложность;
+  \item и множество других свойств.
+\end{itemize}
 
-\subsection{Прототип анализатора}
+Например, на листинге \ref{addi_td} представлено описание инструкции addi. Из описания можно понять, что у инструкции первый операнд (rd --- register destination) является выходным, а два остальных (rs1 --- register source, imm --- immediate значение) входными; инструкция не читает (mayLoad = 0) и не пишет (mayStore = 0) память; инструкция не имеет побочных эффектов.
 
-Для исследования предметной области моим научным руководителем уже была начата разработка анализатора для валидации.
-Данные в анализатор из LLVM поступают в виде \texttt{JSON}, код на Sail анализируется как есть.
+
+\subsection{Прототип статического анализатора}
+
+Для исследования предметной области моим научным руководителем уже была начата разработка статического анализатора для валидации.
+Данные в анализатор из LLVM поступали в виде \texttt{JSON}, код на Sail анализировался как есть.
 Сам Sail реализован на языке \OCaml, и анализатор использует компилятор Sail как библиотеку.
-Анализатор умел находить исполняемые спецификации для инструкций RISC-V и запускать на них тривиальные анализы, а именно наивную проверку выходных аргументов инструкций.
+Анализатор умел находить исполняемые спецификации для инструкций RISC-V и запускать на них тривиальные анализы, а именно наивный поиск выходных аргументов инструкций.
 
 % \emph{Обзор существующих решений должен быть.}
 % Здесь нужно писать, что индустрия и наука уже сделали по вашей теме.
