@@ -84,14 +84,17 @@
 \begin{frame}{Введение}
     \begin{itemize}
         \item RISC-V --- открытая, расширяемая ISA (Instruction Set Architecture)
-        \item LLVM\footnote[frame]{\url{https://llvm.org}} --- инфраструктура для компиляторов
-        \begin{itemize}
-            \item Спецификация ISA описывается декларативно на TableGen
-        \end{itemize}
+
         \item Sail\footnote[frame]{\url{https://github.com/rems-project/sail/}} --- язык для описания моделей процессорных архитектур. Позволяет задать семантику исполнения процессорных инструкций
         \begin{itemize}
             \item sail-riscv\footnote[frame]{\url{https://github.com/riscv/sail-riscv}} --- формальная, поведенческая спецификация RISC-V ISA
         \end{itemize}
+
+        \item LLVM\footnote[frame]{\url{https://llvm.org}} --- инфраструктура для компиляторов
+        \begin{itemize}
+            \item Спецификация ISA описывается декларативно на TableGen
+        \end{itemize}
+
         \item Актуальна проблема валидации спецификаций относительно друг друга
     \end{itemize}
 \end{frame}
@@ -103,15 +106,15 @@
     \vspace{1em}
     \textbf{Задачи}:
     \begin{itemize}
-        \item Разработать прототип анализатора, который будет включать следующие анализы:
+        \item Разработать прототип статического анализатора, включающий следующие анализы:
         \begin{itemize}
             \item Поиск входных и выходных операндов инструкций
             \item Определение того, пишет или читает инструкция память
         \end{itemize}
-        \item Протестировать анализатор
-        \item При помощи анализатора сравнить следующие спецификации RISC-V ISA:
+        \item Протестировать статический анализатор
+        \item Используя статический анализатор, провалидировать следующие спецификации RISC-V ISA:
         \begin{itemize}
-            \item LLVM v19 против sail-riscv\footnote[frame]{\url{https://github.com/riscv/sail-riscv/commits/05b845c91d1c1db7b361fc8d06e815b54ca0b07a}}
+            \item LLVM v19 против sail-riscv\footnote[frame]{\url{https://github.com/riscv/sail-riscv/tree/05b845c91d1c1db7b361fc8d06e815b54ca0b07a}}
             \item \texttt{P extension} (version 0.9.11-draft-20211209) в LLVM против sail-riscv-p\footnote[frame]{\url{https://github.com/umcann123/sail-riscv-p}}
             % \begin{itemize}
             %     \item Для sail-riscv-p дополнительно определить для каждой инструкции какие CSR регистры читает и пишет
@@ -123,21 +126,27 @@
 \begin{frame}[fragile]{Обзор. TableGen}
 
 \begin{itemize}
-    \item TableGen\footnote[frame]{\url{https://llvm.org/docs/TableGen/}} --- декларативный язык
-    \item Используется для описания спецификации ISA целевой платформы
+    \item TableGen\footnote[frame]{\url{https://llvm.org/docs/TableGen/}} --- декларативный язык, который используется в LLVM для описания предметно-ориентированной информации
+    \item В частности, для описания спецификации ISA целевой платформы
+    \item Описываются следующие свойства:
     \begin{itemize}
-        \item входные, выходные операнды
-        \item читает из памяти, пишет в память
+        \item Мнемоники
+        \item Коды инструкций
+        \item \textbf{Входные}, \textbf{выходные операнды}
+        \item \textbf{Читает из памяти}, \textbf{пишет в память}
+        \item Коммутативность
         \item ...
     \end{itemize}
+    \item Файлы с TableGen кодом имеют расширение \texttt{.td}
+    \item При помощи утилиты \texttt{llvm-tblgen} можно скомпилировать в \texttt{JSON}
 \end{itemize}
 
-\begin{lstlisting}[caption={Описание инструкции \texttt{addi} на TableGen}, language={}, frame=single, mathescape = true]
-let isAsCheapAsAMove = 1 in
-def ADDI : RVInstI< ... , (outs GPR:$\dollar$rd),
-                  (ins GPR:$\dollar$rs1, simm12:$\dollar$imm12)
-                  "addi", "$\dollar$rd, $\dollar$rs1, $\dollar$imm12">
-\end{lstlisting}
+% \begin{lstlisting}[caption={Описание инструкции \texttt{addi} на TableGen}, language={}, frame=single, mathescape = true]
+% let isAsCheapAsAMove = 1 in
+% def ADDI : RVInstI< ... , (outs GPR:$\dollar$rd),
+%                   (ins GPR:$\dollar$rs1, simm12:$\dollar$imm12)
+%                   "addi", "$\dollar$rd, $\dollar$rs1, $\dollar$imm12">
+% \end{lstlisting}
 
 \end{frame}
 
@@ -203,24 +212,30 @@ def ADDI : RVInstI< ... , (outs GPR:$\dollar$rd),
 
 \begin{frame}[fragile]{Обзор. Sail-riscv}
 
-    Sail-riscv --- модель архитектуры RISC-V, состоит из:
 
     \begin{itemize}
-        \item \texttt{AST}, причём один узел может представлять множество инструкций
-        \item \texttt{encdec} функций, задающих отображения кода инструкции (opcode) в узлы AST
-        \item \texttt{assembly} функций, отображающих узлы AST в строки
-        \item \texttt{execute} функций, задающих семантику исполнения инструкций
-\begin{lstlisting}[caption={}, language={}, frame=single, mathescape = true]
-function clause execute (ADDI(imm, rs1, rd)) = {
-    let rs1_val = X(rs1);               // read the rs1
-    let immext : xlenbits = EXTS(imm);  // sign-extend imm
-    let result : xlenbits = rs1_val + immext; // compute
-    X(rd) = result;                  // write result to rd
+        \item Sail-riscv\footnote[frame]{\url{https://github.com/riscv/sail-riscv}} --- это модель архитектуры RISC-V
+        \item Модель представляет из себя интерпретатор инструкций
+
+        \begin{itemize}
+            \item \texttt{AST}, причём один узел может представлять множество инструкций
+            \item \texttt{encdec} функций, задающих отображения кода инструкции (opcode) в узлы AST
+            \item \texttt{assembly} функций, отображающих узлы AST в строки
+            \item \texttt{execute} функций, задающих семантику исполнения инструкций
+        \end{itemize}
+
+    \end{itemize}
+
+
+\begin{lstlisting}[caption={}, language=sail, frame=single]
+function clause execute( ADD(rs2, rs1, rd) ) = {
+    let rs1_val = X(rs1);                  // read the rs1
+    let rs2_val = X(rs2);                  // read the rs2
+    let result : xlenbits = rs1_val + rs2_val; // compute
+    X(rd) = result;                        // write result to rd
     RETIRE_SUCCESS
 }
 \end{lstlisting}
-
-    \end{itemize}
 
 \end{frame}
 
