@@ -28,12 +28,24 @@
 
 \lstdefinelanguage{sail}{
     alsodigit = {-},
-    keywords = {function, clause, let, in, match, if, else, then},
+    keywords = {function, clause, let, in, match, if, else, then, union, enum, mapping},
     comment=[l]{//},
     keywordstyle=\ttfamily\bfseries,
     identifierstyle=\ttfamily,
     commentstyle=\color{eclipseGreen}
 }
+
+\lstdefinelanguage{tblgen}{
+    alsodigit = {-},
+    keywords = {def, class, let, in},
+    comment=[l]{//},
+    keywordstyle=\ttfamily\bfseries,
+    identifierstyle=\ttfamily,
+    commentstyle=\color{eclipseGreen}
+}
+
+\renewcommand{\lstlistingname}{Листинг}
+
 
 \usetikzlibrary{arrows.meta, shapes}
 

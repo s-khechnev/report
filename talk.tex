@@ -92,7 +92,7 @@
 
         \item LLVM\footnote[frame]{\url{https://llvm.org}} --- инфраструктура для компиляторов
               \begin{itemize}
-                  \item Спецификация ISA описывается декларативно на TableGen
+                  \item Спецификация целевой ISA описывается декларативно на TableGen
               \end{itemize}
 
         \item Актуальна проблема валидации спецификаций относительно друг друга
@@ -111,11 +111,11 @@
                   \item Поиск входных и выходных операндов инструкций
                   \item Определение, может ли инструкция писать или читать память
               \end{itemize}
-        \item Протестировать статический анализатор
+              % \item Протестировать статический анализатор
         \item Используя статический анализатор, провалидировать следующие спецификации RISC-V ISA:
               \begin{itemize}
                   \item LLVM v19 против sail-riscv\footnote[frame]{\url{https://github.com/riscv/sail-riscv/tree/05b845c91d1c1db7b361fc8d06e815b54ca0b07a}}
-                  \item \texttt{P extension} (version 0.9.11-draft-20211209) в LLVM против sail-riscv-p\footnote[frame]{\url{https://github.com/umcann123/sail-riscv-p}}
+                  \item \texttt{P} \texttt{extension} (version 0.9.11-draft-20211209) в LLVM против sail-riscv-p\footnote[frame]{\url{https://github.com/umcann123/sail-riscv-p}}
                         % \begin{itemize}
                         %     \item Для sail-riscv-p дополнительно определить для каждой инструкции какие CSR регистры читает и пишет
                         % \end{itemize}
@@ -127,11 +127,11 @@
 
     \begin{itemize}
         \item TableGen\footnote[frame]{\url{https://llvm.org/docs/TableGen/}} --- декларативный язык, который используется в LLVM для описания предметно-ориентированной информации
-        \item В частности, для описания спецификации ISA целевой платформы
-        \item Описываются следующие свойства:
+        \item В частности, для описания спецификации ISA целевых платформ
+        \item Для каждой инструкции описываются следующие свойства:
               \begin{itemize}
-                  \item Мнемоники
-                  \item Коды инструкций
+                  \item Мнемоника
+                  \item Код инструкции
                   \item \textbf{Входные}, \textbf{выходные операнды}
                   \item Может ли \textbf{читать из памяти}, \textbf{писать в память}
                   \item Коммутативность
@@ -151,65 +151,6 @@
 \end{frame}
 
 
-
-% \begin{frame}{Обзор. Sail}
-
-% \begin{itemize}
-%     \item Sail --- язык для описания моделей процессорных архитектур
-%     \item Модели
-%     \begin{itemize}
-%         \item ARM
-%         \item X86
-%         \item RISC-V
-%     \end{itemize}
-%     \item Позволяет генерировать эмуляторы процессорных архитектур
-%     \item Верифицировать модели
-%     \item Генерировать и исполнять автоматические тесты
-%     \item Исполнять тесты безопасности кода
-% \end{itemize}
-
-% \end{frame}
-
-% \begin{frame}{Обзор. Sail-riscv}
-
-%     \begin{itemize}
-%         \item Sail-riscv --- модель архитектуры RISC-V, написанная на Sail
-%         \item Модель представляет из себя интерпретатор инструкций
-%         \item
-%     \end{itemize}
-
-% \end{frame}
-
-
-
-% \begin{frame}[fragile]{Обзор. Sail (2)}
-
-%     Для реализации эмулятора процессорной архитектуры на Sail необходимо определить
-%     \begin{itemize}
-%         \item \texttt{AST}
-% \begin{lstlisting}[caption={}, language={}, frame=single, mathescape = true]
-% union clause ast = ADDI : (bits(12), regidx, regidx, bits(3))
-% \end{lstlisting}
-%     \end{itemize}
-
-% \end{frame}
-
-
-% \begin{frame}[fragile]{Обзор. Sail (2)}
-
-%     Для реализации эмулятора процессорной архитектуры на Sail необходимо определить
-%     \begin{itemize}
-%         \item \texttt{AST}
-
-%         \item \texttt{encdec} функции, задающие отображения opcode в узел AST
-% \begin{lstlisting}[caption={}, language={}, frame=single, mathescape = true]
-% mapping clause encdec = ADDI(imm, rs1, rd)
-%     <-> imm @ rs1 @ 0b000 @ rd @ 0b0010011
-% \end{lstlisting}
-%     \end{itemize}
-
-% \end{frame}
-
 \begin{frame}[fragile]{Обзор. Sail-riscv}
 
 
@@ -220,7 +161,7 @@
 
               \begin{itemize}
                   \item \texttt{AST}
-                  \item \texttt{encdec}, кодирование/декодирование кода инструкции (opcode) в AST
+                  \item \texttt{encdec}, кодирование/декодирование кодов инструкций (opcode) в AST
                   \item \texttt{assembly}, отображение AST в мнемоники
                   \item \texttt{execute}, семантика исполнения инструкций
               \end{itemize}
@@ -240,109 +181,6 @@ function clause execute( ADD(rs2, rs1, rd) ) = {
 
 \end{frame}
 
-% \begin{frame}[fragile]{Обзор. Sail (2)}
-
-%     Для реализации эмулятора процессорной архитектуры на Sail необходимо определить
-%     \begin{itemize}
-%         \item \texttt{AST}
-
-%         \item \texttt{encdec} функции, задающие отображения opcode в узел AST
-
-%         \item \texttt{execute} функции, задающие семантику исполнения
-
-%         \item \texttt{assembly} функции, отображающие узлы AST в строки
-% \begin{lstlisting}[caption={}, language={}, frame=single, mathescape = true]
-% mapping clause assembly = ITYPE(imm, rs1, rd)
-%     <-> "addi" ^ spc() ^ reg_name(rd) ^ sep()
-%                        ^ reg_name(rs1) ^ sep()
-%                        ^ hex_bits_signed_12(imm)
-% \end{lstlisting}
-
-
-%     \end{itemize}
-
-% \end{frame}
-
-
-% \begin{frame}{Обзор. Прототип анализатора}
-
-% \begin{itemize}
-%     \item Реализован на \OCaml
-%     \item Умел находить только \texttt{out} регистры
-%     % \item LLVM --- v19, Sail-riscv --- v0.5
-% \end{itemize}
-
-% \vspace{1em}
-
-% \begin{itemize}
-%     \item Два модуля
-%     \begin{itemize}
-%             \item LLVM
-%             \begin{enumerate}
-%                 \item \texttt{.td} файлы транслируются в \texttt{.json}
-%                 \item Парсинг и получение \texttt{in}/\texttt{out} операндов
-%             \end{enumerate}
-%             \item Sail
-%             \begin{enumerate}
-%                 \item Парсинг \texttt{.sail} файлов фронтендом компилятора Sail
-%                 \item Анализ \texttt{execute} функций
-%             \end{enumerate}
-%         \end{itemize}
-% \end{itemize}
-
-% \end{frame}
-
-% \begin{frame}{Реализация}
-
-%     \begin{enumerate}
-%         \item Доработан поиск \texttt{out} операндов в Sail
-%         \begin{itemize}
-%             \item Анализатор не учитывал некоторые функции для записи в регистры
-%         \end{itemize}
-%         \item Поиск \texttt{in} операндов в Sail
-%         \begin{enumerate}
-%             \item Обходим \texttt{execute} функции
-%             \item Обходим все вызовы функций внутри
-%             \item Запоминаем регистры, из которых производилось чтение
-%             \item Анализ алиасов
-%         \end{enumerate}
-%         % Для того чтобы понимать за какие инструкции отвечает нода AST в sail, требовалось реализовать получение мнемоник. Для этогопроизволся анализ функций assembly.
-%         \item Получение мнемоник в Sail
-%         \begin{itemize}
-%             \item Анализ функций \texttt{assembly}
-%         \end{itemize}
-%         \item CI с проверкой сборки проекта
-%     \end{enumerate}
-
-% \end{frame}
-
-% \begin{frame}[fragile]{Реализация. Мнемоники}
-
-%     \begin{itemize}
-%         \item Эмулятор sail-riscv представляет из себя интерпретатор некоторого AST
-%         \item Каждый узел AST параметризован некоторыми параметрами
-%         \begin{lstlisting}[caption={}, language={}, frame=single]
-% enum iop = {RISCV_ADDI, RISCV_SLTI, RISCV_SLTIU,
-%             RISCV_XORI, RISCV_ORI, RISCV_ANDI}
-
-% union clause ast = ITYPE : (bits(12), regidx, regidx, iop)
-%         \end{lstlisting}
-%         \begin{lstlisting}[caption={}, language={}, frame=single]
-% mapping itype_mnemonic : iop <-> string = {
-%     RISCV_ADDI  <-> "addi",
-%     ...
-% }
-% mapping clause assembly = ITYPE(imm, rs1, rd, op)
-% <-> itype_mnemonic(op) ^ spc() ^ reg_name(rd) ^ sep()
-%     ^ reg_name(rs1) ^ sep() ^ hex_bits_signed_12(imm)
-%         \end{lstlisting}
-%         \item Всякая специализация узла AST представляет из себя конкретную инструкцию
-
-%     \end{itemize}
-
-% \end{frame}
-
-
 \begin{frame}[fragile]{Реализация. Статический анализатор}
 
     \begin{itemize}
@@ -350,7 +188,7 @@ function clause execute( ADD(rs2, rs1, rd) ) = {
 
         \item \textbf{Sail}
               \begin{enumerate}
-                  \item Входные данные --- \texttt{.sail} файлы модели
+                  \item Входные данные --- \texttt{sail} файлы модели
                   \item Синтаксический анализ файлов при помощи библиотеки компилятора Sail
                   \item Статический анализ
                         \begin{itemize}
@@ -362,11 +200,11 @@ function clause execute( ADD(rs2, rs1, rd) ) = {
 
         \item \textbf{LLVM TableGen}
               \begin{enumerate}
-                  \item Входные данные --- скомпилированные\footnote[frame]{при помощи \texttt{llvm-tblgen}} в \texttt{JSON} файлы спецификации на TableGen
+                  \item Входные данные --- файлы спецификации на TableGen, скомпилированные\footnote[frame]{при помощи \texttt{llvm-tblgen}} в \texttt{JSON}
                   \item Из \texttt{JSON} извлекается
                         \begin{itemize}
                             \item Входные и выходные операнды
-                            \item Может ли читать/писать инструкция память
+                            \item Может ли инструкция читать/писать память
                         \end{itemize}
               \end{enumerate}
 
@@ -374,80 +212,6 @@ function clause execute( ADD(rs2, rs1, rd) ) = {
     \end{itemize}
 
 \end{frame}
-
-
-% \begin{frame}[fragile]{Реализация. Поиск входных и выходных операндов}
-
-%     \begin{itemize}
-%         \item Для поиска входных и выходных операндов строится граф вызовов для всех \texttt{execute} функций
-%         \item Производится обход этого графа и определение того, какие функции с какими аргументами вызывали функции для чтения/записи регистров
-%         \begin{itemize}
-%             \item Дополнительно для каждой функции производился анализ алиасов
-% %             \begin{lstlisting}[caption={}, language=Caml, frame=single, label=alias]
-% % function clause execute (C_ADDI4SPN(rdc, nzimm)) = {
-% %         let imm : bits(12) = (0b00 @ nzimm @ 0b00);
-% %         let rd = creg2reg_idx(rdc);
-% %         execute(ITYPE(imm, sp, rd, RISCV_ADDI))
-% % }
-% %                 \end{lstlisting}
-%         \end{itemize}
-
-%     \end{itemize}
-
-% \end{frame}
-
-% \begin{frame}[fragile]{Реализация. Поиск входных и выходных операндов}
-
-% \begin{lstlisting}[caption={}, language=Caml]
-% function clause execute (RTYPE(rs2, rs1, rd, op)) =
-%   let rs1_val = X(rs1);
-%   let rs2_val = X(rs2);
-%   let result : xlenbits = match op {
-%       RISCV_ADD  => rs1_val + rs2_val,
-%       RISCV_SUB  => rs1_val - rs2_val,
-%       ...
-%   };
-%   X(rd) = result
-% \end{lstlisting}
-
-% \end{frame}
-
-% \begin{frame}[fragile]{Реализация. Поиск входных и выходных операндов (1)}
-
-% \begin{lstlisting}[caption={}, language=Caml, frame=single]
-% enum rop = { RISCV_ADD, RISCV_SUB, ... }
-
-% union clause ast = RTYPE : (regidx, regidx, regidx, rop)
-
-% mapping rtype_mnemonic : rop <-> string = {
-%     RISCV_ADD  <-> "add",
-%     RISCV_SUB  <-> "sub",
-%     ...
-% }
-
-% mapping clause assembly = RTYPE(rs2, rs1, rd, op)
-%     <-> rtype_mnemonic(op) ^ " " ^ reg_name(rd) ^ " "
-%                     ^ reg_name(rs1) ^ " " ^ reg_name(rs2)
-
-% \end{lstlisting}
-
-% \end{frame}
-
-% \begin{frame}[fragile]{Реализация. Поиск входных и выходных операндов (2)}
-
-% \begin{lstlisting}[caption={}, language=Caml, frame=single]
-% function clause execute (RTYPE(rs2, rs1, rd, op)) =
-%     let rs1_val = X(rs1);
-%     let rs2_val = X(rs2);
-%     let result : xlenbits = match op {
-%         RISCV_ADD  => rs1_val + rs2_val,
-%         RISCV_SUB  => rs1_val - rs2_val,
-%         ...
-%     };
-%     X(rd) = result
-% \end{lstlisting}
-
-% \end{frame}
 
 \begin{frame}[fragile]{Реализация. Поиск входных и выходных операндов}
 
@@ -489,8 +253,8 @@ function clause execute ( ADD(rs2, rs1, rd) ) = {
             ]
 
             \node[box] (ADD) {ADD};
-            \node[box, fill=green!50, below left=1.5cm and 1cm of ADD] (rX) {rX};
-            \node[box, fill=yellow!50, below right=1.5cm and 1cm of ADD] (wX) {wX};
+            \node[box, fill=green!50, below left=1.5cm and 1cm of ADD] (rX) {X (read)};
+            \node[box, fill=yellow!50, below right=1.5cm and 1cm of ADD] (wX) {X (write)};
 
             \draw[edge] (ADD) to [bend right=15] node[left, yshift=5pt] {rs1} (rX);
             \draw[edge] (ADD) to [bend left=15, pos=0.6] node[right, yshift=-3pt] {rs2} (rX);
@@ -503,7 +267,7 @@ function clause execute ( ADD(rs2, rs1, rd) ) = {
 \end{frame}
 
 
-\begin{frame}[fragile]{Реализация. Обращения инструкции к памяти}
+\begin{frame}[fragile]{Реализация. Обращение инструкции к памяти}
 
     \begin{columns}
         \begin{column}{0.6\textwidth}
@@ -565,25 +329,25 @@ function clause execute ( ADD(rs2, rs1, rd) ) = {
 
 \end{frame}
 
-\begin{frame}[fragile]{Реализация. Особенности sail-riscv-p}
+\begin{frame}[fragile]{Реализация. Особенности sail-riscv-p (1)}
 
     \begin{itemize}
         \item RISC-V --- модульная архитектура, позволяющая расширять ISA при помощи расширений
-        \item Расширение P (Packed SIMD) предназначено для ускорения целочисленных и fixed point вычислений
+        \item Расширение P предназначено для ускорения целочисленных и fixed point вычислений
               % Применяется для ускорения DSP (Digital Signal Processing) алогритмов
         \item Sail-riscv-p\footnote[frame]{\url{https://github.com/umcann123/sail-riscv-p}} --- это форк sail-riscv с реализацией расширения P
         \item Для 32-ух битного RISC-V операнды некоторых инструкций кодируют пару регистров
               \begin{lstlisting}[caption={}, language=sail, frame=single]
 function clause execute(PEXT_64BITS_ADD_SUB(rs2, rs1, rd, op))
 ...
-    X(rs1 | 0b00001) @ X(rs1 & 0b11110)
+  rs1_val = X(rs1 | 0b00001) @ X(rs1 & 0b11110)
 ...
               \end{lstlisting}
     \end{itemize}
 
 \end{frame}
 
-\begin{frame}[fragile]{Реализация. Особенности sail-riscv-p}
+\begin{frame}[fragile]{Реализация. Особенности sail-riscv-p (2)}
 
 
     \begin{adjustwidth}{2em}{}
@@ -644,8 +408,8 @@ X(a1) @ X(a2)
 \begin{frame}[fragile]{Реализация. CI и тесты}
 
     \begin{enumerate}
-        \item Для анализтора написаны модульные и интеграционные тесты
-        \item Тестовое покрытие состовляет 81.36\%
+        \item Для статического анализатора написаны модульные и интеграционные тесты
+        \item Тестовое покрытие составляет 81.36\%
         \item \texttt{CI} для проверки успешности сборки проекта и прохождения тестов
     \end{enumerate}
 
@@ -693,9 +457,9 @@ X(a1) @ X(a2)
         \item разработан прототип анализатора, который реализует следующие анализы:
               \begin{itemize}
                   \item поиск входных и выходных операндов инструкций
-                  \item определение, обращается ли инструкция к памяти
+                  \item определение, может ли инструкция читать или писать память
               \end{itemize}
-        \item при помощи анализатора сравнены следующие спецификации RISC-V ISA:
+        \item при помощи анализатора провалидированы следующие спецификации RISC-V ISA:
               \begin{itemize}
                   \item LLVM v19 против sail-riscv
                   \item P extension  в LLVM против sail-riscv-p\
@@ -713,15 +477,125 @@ X(a1) @ X(a2)
 \appendix
 
 \begin{frame}[fragile]
-    \frametitle{Дополнительный слайд}
+    \frametitle{Дополнительный слайд. TableGen}
 
-    \begin{lstlisting}[caption={rsd является алиасом rsdc, rs2 алиасом rsc2}, language={}, frame=single]
-function clause execute (C_SUB(rsdc, rsc2)) = {
-    let rsd = creg2reg_idx(rsdc);
-    let rs2 = creg2reg_idx(rsc2);
-    execute(RTYPE(rs2, rsd, rsd, RISCV_SUB))
+    \begin{lstlisting}[caption={Пример описания инструкции \texttt{add} на декларативном языке TableGen}, language=tblgen, frame=single]
+let hasSideEffects = 0, mayLoad = 0, mayStore = 0 in
+class ALU_rr<bits<7> funct7, bits<3> funct3, string opcodestr,
+             bit Commutable = 0>
+    : RVInstR<funct7, funct3, OPC_OP, (outs GPR:$rd),
+                (ins GPR:$rs1, GPR:$rs2),
+                opcodestr, "$rd, $rs1, $rs2"> {
+  let isCommutable = Commutable;
+}
+
+def ADD : ALU_rr<0b0000000, 0b000, "add", Commutable=1>,
+           Sched<[WriteIALU, ReadIALU, ReadIALU]>;
+
+    \end{lstlisting}
+
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+    \frametitle{Дополнительный слайд. Обращение инструкции к памяти}
+
+    \begin{itemize}
+        \item При трансляции виртуального адреса в физический может происходить чтение/запись памяти
+
+        \item Чтение
+              \begin{itemize}
+                  \item Если TLB miss, тогда надо читать таблицу страниц (page table) из памяти
+              \end{itemize}
+        \item Запись
+              \begin{itemize}
+                  \item Если необходимо обновить бит A (accessed) или D (dirty) у записи таблицы страниц, которая содержит физический адрес
+              \end{itemize}
+    \end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+    \frametitle{Дополнительный слайд. Sail-riscv (1)}
+
+    \begin{lstlisting}[caption={Пример узла AST, представляющего инструкции \texttt{addi}, \texttt{slti}, \texttt{sltiu}, \texttt{andi}, \texttt{ori} и \texttt{xori} в sail-riscv}, language=sail, frame=single, label=itype]
+  enum iop = {RISCV_ADDI, RISCV_SLTI, RISCV_SLTIU,
+              RISCV_XORI, RISCV_ORI, RISCV_ANDI}
+
+  union clause ast = ITYPE : (bits(12), regidx, regidx, iop)
+\end{lstlisting}
+
+    \begin{lstlisting}[caption={Функция кодирования/декодирования}, language=sail, frame=single]
+  mapping encdec_iop : iop <-> bits(3) = {
+    RISCV_ADDI  <-> 0b000,
+    RISCV_SLTI  <-> 0b010,
+    ...
+  }
+
+  mapping clause encdec = ITYPE(imm, rs1, rd, op)
+    <-> imm @ rs1 @ encdec_iop(op) @ rd @ 0b0010011
+\end{lstlisting}
+
+
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Дополнительный слайд. Sail-riscv (2)}
+
+    \begin{lstlisting}[caption={Пример функции \texttt{assembly} (отображает узлы AST в мнемоники) для узла с листинга \protect\ref{itype}}, language=sail, frame=single]
+mapping itype_mnemonic : iop <-> string = {
+  RISCV_ADDI  <-> "addi",
+  RISCV_SLTI  <-> "slti",
+  ...
+}
+
+mapping clause assembly = ITYPE(imm, rs1, rd, op)
+  <-> itype_mnemonic(op) ^ spc() ^ reg_name(rd)
+        ^ sep() ^ reg_name(rs1) ^ sep() ^ hex_bits_signed_12(imm)
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Дополнительный слайд. Sail-riscv (3)}
+
+    \begin{lstlisting}[caption={Пример определения семантики исполнения инструкций \texttt{addi}, \texttt{slti}, \texttt{sltiu}, \texttt{andi}, \texttt{ori} и \texttt{xori}}, language=sail, frame=single]
+function clause execute (ITYPE (imm, rs1, rd, op)) = {
+  let rs1_val = X(rs1);               // read the rs1
+  let immext : xlenbits = EXTS(imm);  // sign-extend imm
+  let result : xlenbits = match op {  // compute the result
+    RISCV_ADDI  => rs1_val + immext,  // for addi, do addition
+    RISCV_SLTI  => EXTZ(rs1_val <_s immext), // ...etc
+    ...
+  };
+  X(rd) = result;                     // write result to rd
+  RETIRE_SUCCESS                      // successful termination
 }
 \end{lstlisting}
+
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+    \frametitle{Дополнительный слайд. Sail-riscv (4)}
+
+    \begin{lstlisting}[caption={Пример необходимости удаления неиспользуемых выражений после специализации функции}, language=sail, escapechar=!, frame=single]
+function clause execute (PEXT_32_16_MUL_ADD(rs2, rs1, rd, op)) = {
+  let rs1_val = X(rs1); let rs2_val = X(rs2); let !\colorbox{green!50}{rd\_val}! = X(rd);
+  result : xlenbits = zeros();
+  foreach (i from 0 to (sizeof(xlen) - 32) by 32) {
+    let rs1_word = slice(rs1_val, i, 32);
+    let rs2_word = slice(rs2_val, i, 32);
+    let !\colorbox{green!50}{rd\_word}! = slice(!\colorbox{green!50}{rd\_val}!, i, 32);
+    result[(i+31)..i] = match op {
+      SMMWB  => smmw(rs1_word, slice(rs2_word, 0, 16)),
+      KMMAWB => kmmaw(rs1_word, slice(rs2_word, 0, 16), !\colorbox{green!50}{rd\_word}!),
+      ...
+    \end{lstlisting}
+
 
 \end{frame}
 

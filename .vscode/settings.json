@@ -54,5 +54,6 @@
         "-c",
         "%DIR%/",
         "%TMPFILE%"
-    ]
+    ],
+    "cSpell.language": "en,ru"
 }
