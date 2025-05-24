@@ -6,18 +6,18 @@
 Таким образом, в рамках преддипломной практики были достигнуты следующие результаты:
 \begin{itemize}
     \item разработан прототип анализатора, который реализует следующие анализы;
-    \begin{itemize}
-        \item поиск входных и выходных операндов инструкций;
-        \item определение, обращается ли инструкция к памяти;
-    \end{itemize}
+          \begin{itemize}
+              \item поиск входных и выходных операндов инструкций;
+              \item определение, обращается ли инструкция к памяти;
+          \end{itemize}
     \item при помощи анализатора сравнены следующие спецификации RISC-V ISA:
-    \begin{itemize}
-        \item LLVM v19 против sail-riscv\footnote{\url{https://github.com/riscv/sail-riscv/commits/05b845c91d1c1db7b361fc8d06e815b54ca0b07a} (дата обращения: \DTMdate{2025-05-17}).};
-        \item <<P>> extension (Version 0.9.11-draft-20211209\footnote{\url{https://tools.cloudbear.ru/docs/riscv-p-extension-0.9.11-20211209.pdf} (дата обращения: \DTMdate{2025-05-17}).}) в LLVM против sail-riscv-p\footnote{\url{https://github.com/umcann123/sail-riscv-p} (дата обращения: \DTMdate{2025-05-17}).};
-        \begin{itemize}
-            \item для sail-riscv-p дополнительно определены для каждой инструкции какие CSR регистры читает и пишет;
-        \end{itemize}
-    \end{itemize}
+          \begin{itemize}
+              \item LLVM v19 против sail-riscv\footnote{\url{https://github.com/riscv/sail-riscv/commits/05b845c91d1c1db7b361fc8d06e815b54ca0b07a} (дата обращения: \DTMdate{2025-05-17}).};
+              \item <<P>> extension (Version 0.9.11-draft-20211209\footnote{\url{https://tools.cloudbear.ru/docs/riscv-p-extension-0.9.11-20211209.pdf} (дата обращения: \DTMdate{2025-05-17}).}) в LLVM против sail-riscv-p\footnote{\url{https://github.com/umcann123/sail-riscv-p} (дата обращения: \DTMdate{2025-05-17}).};
+                    \begin{itemize}
+                        \item для sail-riscv-p дополнительно определены для каждой инструкции какие CSR регистры читает и пишет;
+                    \end{itemize}
+          \end{itemize}
 
 \end{itemize}
 

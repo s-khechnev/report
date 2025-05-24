@@ -12,23 +12,23 @@
 
 \begin{itemize}
   \item Модуль, ответственный за анализ LLVM, получает на вход скомпилированные в единый \texttt{JSON} \texttt{.td} файлы, содержащие описание спецификации RISC-V ISA.
-  Затем из входного \texttt{JSON} файла для каждой инструкции извлекаются следующие свойства:
-  \begin{itemize}
-    \item мнемоника (извлекается по ключу \texttt{AsmString});
-    \item входные операнды (по ключу \texttt{InOperandList});
-    \item выходные операнды (по ключу \texttt{OutOperandList});
-    \item неявные входные операнды (по ключу \texttt{Uses});
-    \item неявные выходные операнды (по ключу \texttt{Defs});
-    \item читает ли инструкция память (по ключу \texttt{mayLoad});
-    \item пишет ли инструкция в память (по ключу \texttt{mayStore});
-    \item для какой разрядности (\texttt{RV32} или \texttt{RV64}, или для обеих) определена инструкция (по ключу \texttt{Predicates}).
-  \end{itemize}
-  Наконец, анализатор генерирует модуль, который содержит всю собранную информацию о свойствах каждой инструкции и предоставляет интерфейс для доступа к информации.
-  Генерация отдельного модуля со всей информацией реализована для того, чтобы при каждом запуске анализатора не анализировать один и тот же \texttt{JSON}, тем самым экономя драгоценное время.
+        Затем из входного \texttt{JSON} файла для каждой инструкции извлекаются следующие свойства:
+        \begin{itemize}
+          \item мнемоника (извлекается по ключу \texttt{AsmString});
+          \item входные операнды (по ключу \texttt{InOperandList});
+          \item выходные операнды (по ключу \texttt{OutOperandList});
+          \item неявные входные операнды (по ключу \texttt{Uses});
+          \item неявные выходные операнды (по ключу \texttt{Defs});
+          \item читает ли инструкция память (по ключу \texttt{mayLoad});
+          \item пишет ли инструкция в память (по ключу \texttt{mayStore});
+          \item для какой разрядности (\texttt{RV32} или \texttt{RV64}, или для обеих) определена инструкция (по ключу \texttt{Predicates}).
+        \end{itemize}
+        Наконец, анализатор генерирует модуль, который содержит всю собранную информацию о свойствах каждой инструкции и предоставляет интерфейс для доступа к информации.
+        Генерация отдельного модуля со всей информацией реализована для того, чтобы при каждом запуске анализатора не анализировать один и тот же \texttt{JSON}, тем самым экономя драгоценное время.
 
   \item Второй модуль, отвечающий за статический анализ модели на Sail, получает на вход \texttt{.sail} файлы, которые содержат определение модели.
-  Далее при помощи библиотеки компилятора языка Sail анализатор производит синтаксический анализ и вывод типов, на выходе получая типизированное AST.
-  Затем на полученном ранее типизированном AST запускаются анализы, о которых подробнее далее.
+        Далее при помощи библиотеки компилятора языка Sail анализатор производит синтаксический анализ и вывод типов, на выходе получая типизированное AST.
+        Затем на полученном ранее типизированном AST запускаются анализы, о которых подробнее далее.
 \end{itemize}
 
 \subsection{Специализация модели}
@@ -54,9 +54,9 @@
 
 В модели sail-riscv для взаимодействия с регистрами используются следующие функции:
 \begin{itemize}
-      \item \texttt{rX} для чтения, \texttt{wX} для записи GPR регистров;
-      \item \texttt{rF} для чтения, \texttt{wF} для записи вещественных регистров;
-      \item \texttt{rV} для чтения, \texttt{wV} для записи векторных регистров.
+  \item \texttt{rX} для чтения, \texttt{wX} для записи GPR регистров;
+  \item \texttt{rF} для чтения, \texttt{wF} для записи вещественных регистров;
+  \item \texttt{rV} для чтения, \texttt{wV} для записи векторных регистров.
 \end{itemize}
 
 Для поиска входных и выходных операндов строился граф вызовов всех функций для всех специализаций функций \texttt{execute}, которые отвечают за интерпретацию поведения инструкций.
@@ -79,8 +79,8 @@ function clause execute (C_ADDI4SPN(rdc, nzimm)) = {
 
 Однако любая инструкция, которая работает с адресами, для трансляции виртуального адреса в физический обращалась к таблице виртуальных адресов. И при чтении таблицы виртуальных адресов могла происходить как запись в память, так и чтение из памяти.
 \begin{itemize}
-      \item Чтение из памяти могло происходить в случае, если при трансляции виртуального адреса в физический происходил TLB miss. Тогда необходимо было прочитать таблицу виртуальных адресов из памяти.
-      \item Запись в память могла происходить тогда, когда при трансляции виртуального адреса в физический необходимо было обновить бит A или D у записи таблицы виртуальных адресов.
+  \item Чтение из памяти могло происходить в случае, если при трансляции виртуального адреса в физический происходил TLB miss. Тогда необходимо было прочитать таблицу виртуальных адресов из памяти.
+  \item Запись в память могла происходить тогда, когда при трансляции виртуального адреса в физический необходимо было обновить бит A или D у записи таблицы виртуальных адресов.
 \end{itemize}
 
 По требованию заказчика обращения к памяти при трансляции адресов игнорировались. Для этого при решении задачи достижимости вершин \texttt{read\_ream} и \texttt{write\_ram} в графе вызовов игнорировался вызов функции \texttt{translateAddr}, отвечающей за трансляцию виртуального адреса в физический.
@@ -144,23 +144,23 @@ let a1 = rs1 | 0b00001 in X(a1)
 Для LLVM версии 19 и sail-riscv\footnote{\url{https://github.com/riscv/sail-riscv/commits/05b845c91d1c1db7b361fc8d06e815b54ca0b07a} (дата обращения: \DTMdate{2025-05-17}).} при помощи анализатора были найдены следующие расхождения:
 
 \begin{enumerate}
-      \item \texttt{sp} не является явным аргументом в sail-riscv для инструкций:
-      \texttt{c.addi16sp}, \texttt{c.addi4spn}, \texttt{c.fldsp}, \texttt{c.flwsp}, \texttt{c.fsdsp}, \texttt{c.fswsp}, \texttt{c.ldsp}, \texttt{c.lwsp}, \texttt{c.sdsp}, \texttt{c.swsp}.
+  \item \texttt{sp} не является явным аргументом в sail-riscv для инструкций:
+        \texttt{c.addi16sp}, \texttt{c.addi4spn}, \texttt{c.fldsp}, \texttt{c.flwsp}, \texttt{c.fsdsp}, \texttt{c.fswsp}, \texttt{c.ldsp}, \texttt{c.lwsp}, \texttt{c.sdsp}, \texttt{c.swsp}.
 
-      % \item \texttt{Zreg} является неявным входным регистром в Sail для инструкций:
-      % \texttt{c.beqz}, \texttt{c.bnez}, \texttt{c.fldsp}, \texttt{c.li}, \texttt{c.mv}.
+        % \item \texttt{Zreg} является неявным входным регистром в Sail для инструкций:
+        % \texttt{c.beqz}, \texttt{c.bnez}, \texttt{c.fldsp}, \texttt{c.li}, \texttt{c.mv}.
 
-      % \item \texttt{Zreg} является неявным выходным регистром в Sail для инструкций:
-      % \texttt{c.j}, \texttt{c.jr}.
+        % \item \texttt{Zreg} является неявным выходным регистром в Sail для инструкций:
+        % \texttt{c.j}, \texttt{c.jr}.
 
-      \item \texttt{RA} является неявным out регистром в sail-riscv для инструкций:
-      \texttt{c.jal}, \texttt{c.jalr}
+  \item \texttt{RA} является неявным out регистром в sail-riscv для инструкций:
+        \texttt{c.jal}, \texttt{c.jalr}
 
-      \item В sail-riscv \texttt{vd} --- входной регистр для инструкций:
-      \texttt{vadc.vim} \texttt{vadc.vvm} \texttt{vadc.vxm} \texttt{vcompress.vm} \texttt{vfmerge.vfm} \texttt{vmadc.vi} \texttt{vmadc.vim} \texttt{vmadc.vv} \texttt{vmadc.vvm} \texttt{vmadc.vx} \texttt{vmadc.vxm} \texttt{vmand.mm} \texttt{vmandn.mm} \texttt{vmerge.vim} \texttt{vmerge.vvm} \texttt{vmerge.vxm} \texttt{vmnand.mm} \texttt{vmnor.mm} \texttt{vmor.mm} \texttt{vmorn.mm} \texttt{vmsbc.vv} \texttt{vmsbc.vvm} \texttt{vmsbc.vx} \texttt{vmsbc.vxm} \texttt{vmxnor.mm} \texttt{vmxor.mm} \texttt{vsbc.vvm} \texttt{vsbc.vxm}.
+  \item В sail-riscv \texttt{vd} --- входной регистр для инструкций:
+        \texttt{vadc.vim} \texttt{vadc.vvm} \texttt{vadc.vxm} \texttt{vcompress.vm} \texttt{vfmerge.vfm} \texttt{vmadc.vi} \texttt{vmadc.vim} \texttt{vmadc.vv} \texttt{vmadc.vvm} \texttt{vmadc.vx} \texttt{vmadc.vxm} \texttt{vmand.mm} \texttt{vmandn.mm} \texttt{vmerge.vim} \texttt{vmerge.vvm} \texttt{vmerge.vxm} \texttt{vmnand.mm} \texttt{vmnor.mm} \texttt{vmor.mm} \texttt{vmorn.mm} \texttt{vmsbc.vv} \texttt{vmsbc.vvm} \texttt{vmsbc.vx} \texttt{vmsbc.vxm} \texttt{vmxnor.mm} \texttt{vmxor.mm} \texttt{vsbc.vvm} \texttt{vsbc.vxm}.
 
-      \item В sail-riscv \texttt{vd} и (неявно) \texttt{v0} --- входные регистры для инструкций:
-      \texttt{vaaddu.vv} \texttt{vaaddu.vx} \texttt{vaadd.vv} \texttt{vaadd.vx} \texttt{vadd.vi} \texttt{vadd.vv} \texttt{vadd.vx} \texttt{vand.vi} \texttt{vand.vv} \texttt{vand.vx} \texttt{vasubu.vv} \texttt{vasubu.vx} \texttt{vasub.vv} \texttt{vasub.vx} \texttt{vdivu.vv} \texttt{vdivu.vx} \texttt{vdiv.vv} \texttt{vdiv.vx} \texttt{vfadd.vf} \texttt{vfadd.vv} \texttt{vfclass.v} \texttt{vfcvt.f.xu.v} \texttt{vfcvt.f.x.v} \texttt{vfcvt.rtz.x.f.v} \texttt{vfcvt.rtz.xu.f.v} \texttt{vfcvt.x.f.v} \texttt{vfcvt.xu.f.v} \texttt{vfdiv.vf} \texttt{vfdiv.vv} \texttt{vfirst.m} \texttt{vfmacc.vf} \texttt{vfmacc.vv} \texttt{vfmadd.vf} \texttt{vfmadd.vv} \texttt{vfmax.vf} \texttt{vfmax.vv} \texttt{vfmin.vf} \texttt{vfmin.vv} \texttt{vfmsac.vf} \texttt{vfmsac.vv} \texttt{vfmsub.vf} \texttt{vfmsub.vv} \texttt{vfmul.vf} \texttt{vfmul.vv} \texttt{vfmv.s.f} \texttt{vfmv.v.f} \texttt{vfncvt.f.f.w} \texttt{vfncvt.f.xu.w} \texttt{vfncvt.f.x.w} \texttt{vfncvt.rod.f.f.w} \texttt{vfncvt.rtz.x.f.w}...\footnote{Полный список разхождений --- \url{https://github.com/s-khechnev/llvm_td_lint_playground/blob/ins_outs_regs/Results.md} (дата обращения: \DTMdate{2025-03-12}).}.
+  \item В sail-riscv \texttt{vd} и (неявно) \texttt{v0} --- входные регистры для инструкций:
+        \texttt{vaaddu.vv} \texttt{vaaddu.vx} \texttt{vaadd.vv} \texttt{vaadd.vx} \texttt{vadd.vi} \texttt{vadd.vv} \texttt{vadd.vx} \texttt{vand.vi} \texttt{vand.vv} \texttt{vand.vx} \texttt{vasubu.vv} \texttt{vasubu.vx} \texttt{vasub.vv} \texttt{vasub.vx} \texttt{vdivu.vv} \texttt{vdivu.vx} \texttt{vdiv.vv} \texttt{vdiv.vx} \texttt{vfadd.vf} \texttt{vfadd.vv} \texttt{vfclass.v} \texttt{vfcvt.f.xu.v} \texttt{vfcvt.f.x.v} \texttt{vfcvt.rtz.x.f.v} \texttt{vfcvt.rtz.xu.f.v} \texttt{vfcvt.x.f.v} \texttt{vfcvt.xu.f.v} \texttt{vfdiv.vf} \texttt{vfdiv.vv} \texttt{vfirst.m} \texttt{vfmacc.vf} \texttt{vfmacc.vv} \texttt{vfmadd.vf} \texttt{vfmadd.vv} \texttt{vfmax.vf} \texttt{vfmax.vv} \texttt{vfmin.vf} \texttt{vfmin.vv} \texttt{vfmsac.vf} \texttt{vfmsac.vv} \texttt{vfmsub.vf} \texttt{vfmsub.vv} \texttt{vfmul.vf} \texttt{vfmul.vv} \texttt{vfmv.s.f} \texttt{vfmv.v.f} \texttt{vfncvt.f.f.w} \texttt{vfncvt.f.xu.w} \texttt{vfncvt.f.x.w} \texttt{vfncvt.rod.f.f.w} \texttt{vfncvt.rtz.x.f.w}...\footnote{Полный список разхождений --- \url{https://github.com/s-khechnev/llvm_td_lint_playground/blob/ins_outs_regs/Results.md} (дата обращения: \DTMdate{2025-03-12}).}.
 
 
 \end{enumerate}
@@ -168,8 +168,8 @@ let a1 = rs1 | 0b00001 in X(a1)
 Для реализации расширения <<P>> в LLVM и в sail-riscv-p\footnote{\url{https://github.com/umcann123/sail-riscv-p} (дата обращения: \DTMdate{2024-12-17}).} при помощи анализатора были найдены следующие расхождения:
 
 \begin{itemize}
-      \item В sail-riscv-p \texttt{rd} является входным регистром для инструкций:
-      \texttt{ave}, \texttt{bitrev}, \texttt{kaddw}, \texttt{kdmbb}, \texttt{kdmbb16}, \texttt{kdmbt}, \texttt{kdmbt16}, \texttt{kdmtt}, \texttt{kdmtt16}, \texttt{khmbb16}, \texttt{khmbt16}, \texttt{khmtt16}, \texttt{kmda}, \texttt{kmmwb2}, \texttt{kmmwb2.u}, \texttt{kmmwt2}, \texttt{kmmwt2.u}, \texttt{kmxda}, \texttt{ksllw}, \texttt{kslraw}, \texttt{kslraw.u}, \texttt{ksubw}, \texttt{kwmmul}, \texttt{kwmmul.u}, \texttt{smbb16}, \texttt{smbt16}, \texttt{smdrs}, \texttt{smds}, \texttt{smmul}, \texttt{smmul.u}, \texttt{smmwb}, \texttt{smmwb.u}, \texttt{smmwt}, \texttt{smmwt.u}, \texttt{smtt16}, \texttt{smxds}, \texttt{sra.u}, \texttt{ukaddw}, \texttt{uksubw}
+  \item В sail-riscv-p \texttt{rd} является входным регистром для инструкций:
+        \texttt{ave}, \texttt{bitrev}, \texttt{kaddw}, \texttt{kdmbb}, \texttt{kdmbb16}, \texttt{kdmbt}, \texttt{kdmbt16}, \texttt{kdmtt}, \texttt{kdmtt16}, \texttt{khmbb16}, \texttt{khmbt16}, \texttt{khmtt16}, \texttt{kmda}, \texttt{kmmwb2}, \texttt{kmmwb2.u}, \texttt{kmmwt2}, \texttt{kmmwt2.u}, \texttt{kmxda}, \texttt{ksllw}, \texttt{kslraw}, \texttt{kslraw.u}, \texttt{ksubw}, \texttt{kwmmul}, \texttt{kwmmul.u}, \texttt{smbb16}, \texttt{smbt16}, \texttt{smdrs}, \texttt{smds}, \texttt{smmul}, \texttt{smmul.u}, \texttt{smmwb}, \texttt{smmwb.u}, \texttt{smmwt}, \texttt{smmwt.u}, \texttt{smtt16}, \texttt{smxds}, \texttt{sra.u}, \texttt{ukaddw}, \texttt{uksubw}
 \end{itemize}
 
 
