@@ -28,8 +28,14 @@
 
 \lstdefinelanguage{sail}{
     alsodigit = {-},
-    keywords = {function, clause, let, in}
+    keywords = {function, clause, let, in, match, if, else, then},
+    comment=[l]{//},
+    keywordstyle=\ttfamily\bfseries,
+    identifierstyle=\ttfamily,
+    commentstyle=\color{eclipseGreen}
 }
+
+\usetikzlibrary{arrows.meta, shapes}
 
 \usepackage{booktabs} % Пакет для верстки "более книжных" таблиц, вполне годится для оформления результатов
 % В шаблоне есть команда \multirowcell, которой нужен этот пакет.

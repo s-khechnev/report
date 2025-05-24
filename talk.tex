@@ -133,7 +133,7 @@
                   \item Мнемоники
                   \item Коды инструкций
                   \item \textbf{Входные}, \textbf{выходные операнды}
-                  \item \textbf{Читает из памяти}, \textbf{пишет в память}
+                  \item Может ли \textbf{читать из памяти}, \textbf{писать в память}
                   \item Коммутативность
                   \item ...
               \end{itemize}
@@ -365,8 +365,8 @@ function clause execute( ADD(rs2, rs1, rd) ) = {
                   \item Входные данные --- скомпилированные\footnote[frame]{при помощи \texttt{llvm-tblgen}} в \texttt{JSON} файлы спецификации на TableGen
                   \item Из \texttt{JSON} извлекается
                         \begin{itemize}
-                            \item входные и выходные операнды
-                            \item читает/пишет ли инструкция память
+                            \item Входные и выходные операнды
+                            \item Может ли читать/писать инструкция память
                         \end{itemize}
               \end{enumerate}
 
@@ -452,19 +452,53 @@ function clause execute( ADD(rs2, rs1, rd) ) = {
 \begin{frame}[fragile]{Реализация. Поиск входных и выходных операндов}
 
     \begin{lstlisting}[caption={}, language=sail, escapechar=!, label=rtype_speced]
-function clause execute (ADD(rs2, rs1, rd)) = {
-    let rs1_val = !\colorbox{green}{X(rs1)}!;
-    let rs2_val = !\colorbox{green}{X(rs2)}!;
+function clause execute ( ADD(rs2, rs1, rd) ) = {
+    let rs1_val = !\colorbox{green!50}{X(rs1)}!;
+    let rs2_val = !\colorbox{green!50}{X(rs2)}!;
     let result : xlenbits = rs1_val + rs2_val;
-    !\colorbox{yellow}{X(rd)}! = result
+    !\colorbox{yellow!50}{X(rd)}! = result
     RETIRE_SUCCESS
 }
     \end{lstlisting}
 
-    \begin{figure}[h]
-        \centering
-        \includegraphics[width=0.3\textwidth]{figures/graph_rtype_1.png}
-    \end{figure}
+    % \begin{figure}[h]
+    %     \centering
+    %     \includegraphics[width=0.3\textwidth]{figures/graph_rtype_1.png}
+    % \end{figure}
+
+    \begin{center}
+        \begin{tikzpicture}[
+                node distance=1cm,
+                box/.style={
+                        draw,
+                        rectangle,
+                        rounded corners,
+                        minimum width=2cm,
+                        minimum height=1cm,
+                        align=center
+                    },
+                edge/.style={
+                        ->,
+                        >=Stealth,
+                        shorten >=1pt,
+                        shorten <=1pt
+                    },
+                every label/.style={
+                        font=\small
+                    }
+            ]
+
+            \node[box] (ADD) {ADD};
+            \node[box, fill=green!50, below left=1.5cm and 1cm of ADD] (rX) {rX};
+            \node[box, fill=yellow!50, below right=1.5cm and 1cm of ADD] (wX) {wX};
+
+            \draw[edge] (ADD) to [bend right=15] node[left, yshift=5pt] {rs1} (rX);
+            \draw[edge] (ADD) to [bend left=15, pos=0.6] node[right, yshift=-3pt] {rs2} (rX);
+            \draw[edge] (ADD) to node[auto] {rd} (wX);
+
+        \end{tikzpicture}
+    \end{center}
+
 
 \end{frame}
 
@@ -474,8 +508,8 @@ function clause execute (ADD(rs2, rs1, rd)) = {
     \begin{columns}
         \begin{column}{0.6\textwidth}
             \begin{itemize}
-                \item Функции \texttt{read\_ram} и \texttt{write\_ram} --- примитивы для работы с памятью в sail-riscv
-                \item Для каждой функции \texttt{execute} проверялась достижимость вершин \texttt{read\_ram} и \texttt{write\_ram} в графе вызовов функций
+                \item Функции \textbf{\texttt{read\_ram}} и \textbf{\texttt{write\_ram}} являются примитивными для работы с памятью
+                \item Для каждой функции \texttt{execute} проверялась достижимость вершин \textbf{\texttt{read\_ram}} и \textbf{\texttt{write\_ram}} в графе вызовов функций
                       % \begin{lstlisting}[caption={}, language=Caml, escapechar=!]
                       % function clause execute(LOAD(imm, rs1, rd)) =
                       %     let addr : xlenbits = X(rs1) + EXTS(imm);
@@ -483,16 +517,49 @@ function clause execute (ADD(rs2, rs1, rd)) = {
                       %     X(rd) = result
 
                       % \end{lstlisting}
-                \item Чтение или запись может происходить при трансляции виртуального адреса в физический. Такие обращение игнорировались
+                \item Чтение или запись памяти может происходить при трансляции виртуального адреса в физический. Такие обращения игнорировались
 
             \end{itemize}
         \end{column}
 
         \begin{column}{0.4\textwidth}
-            \begin{figure}[h]
-                \centering
-                \includegraphics[width=0.4\textwidth]{figures/read_ram.png}
-            \end{figure}
+            % \begin{figure}[h]
+            %     \centering
+            %     \includegraphics[width=0.4\textwidth]{figures/read_ram.png}
+            % \end{figure}
+
+            \begin{center}
+                \begin{tikzpicture}[
+                        node distance=1cm,
+                        box/.style={
+                                draw,
+                                rectangle,
+                                rounded corners,
+                                minimum width=2cm,
+                                minimum height=1cm,
+                                align=center
+                            },
+                        edge/.style={
+                                ->,
+                                >=Stealth,
+                                shorten >=1pt,
+                                shorten <=1pt
+                            },
+                        every label/.style={
+                                font=\small
+                            }
+                    ]
+
+                    \node[box] (LOAD) {LOAD};
+                    \node[box, below=of LOAD] (mem_read) {mem\_read};
+                    \node[box, below=of mem_read, fill=green!50] (read_ram) {read\_ram};
+
+                    \draw[edge] (LOAD) -- (mem_read);
+                    \draw[edge] (mem_read) -- (read_ram);
+
+                \end{tikzpicture}
+            \end{center}
+
         \end{column}
     \end{columns}
 
@@ -506,24 +573,12 @@ function clause execute (ADD(rs2, rs1, rd)) = {
               % Применяется для ускорения DSP (Digital Signal Processing) алогритмов
         \item Sail-riscv-p\footnote[frame]{\url{https://github.com/umcann123/sail-riscv-p}} --- это форк sail-riscv с реализацией расширения P
         \item Для 32-ух битного RISC-V операнды некоторых инструкций кодируют пару регистров
-              \begin{lstlisting}[caption={}, language=Caml, frame=single]
+              \begin{lstlisting}[caption={}, language=sail, frame=single]
 function clause execute(PEXT_64BITS_ADD_SUB(rs2, rs1, rd, op))
 ...
-    rs1_val = X(rs1 | 0b00001) @ X(rs1 & 0b11110);
+    X(rs1 | 0b00001) @ X(rs1 & 0b11110)
 ...
-\end{lstlisting}
-
-              %         \begin{enumerate}
-              %             \item Модель представлялась в ANF форме
-              %             \item Определялись входные и выходные операнды по графу вызовов
-              %             \item Построение и анализ data flow графа --- определение зависимости операндов найденных на предыдущем шаге
-              % \begin{lstlisting}[caption={}, language=Caml, frame=single]
-              % let a1 = rs1 | 0b00001 in
-              % let a2 = rs1 & 0b11110 in
-              % rs1_val = X(a1) @ X(a2);
-              % \end{lstlisting}
-
-              %         \end{enumerate}
+              \end{lstlisting}
     \end{itemize}
 
 \end{frame}
@@ -532,24 +587,55 @@ function clause execute(PEXT_64BITS_ADD_SUB(rs2, rs1, rd, op))
 
 
     \begin{adjustwidth}{2em}{}
-        \begin{lstlisting}[caption={}, language=Caml, frame=single]
-rs1_val = X(rs1 | 0b00001) @ X(rs1 & 0b11110)
+        \begin{lstlisting}[caption={}, language=sail, frame=single]
+X(rs1 | 0b00001) @ X(rs1 & 0b11110)
 \end{lstlisting}
     \end{adjustwidth}
 
     \begin{enumerate}
         \item Представление программы в ANF, A-Normal Form --- все аргументы функций константы или переменные
-              \begin{lstlisting}[caption={}, language=Caml, frame=single]
+              \begin{lstlisting}[caption={}, language=sail, frame=single]
 let a1 = rs1 | 0b00001 in
 let a2 = rs1 & 0b11110 in
-rs1_val = X(a1) @ X(a2);
+X(a1) @ X(a2)
 \end{lstlisting}
         \item Определение входных и выходных операндов по графу вызовов
         \item Построение и анализ data flow графа
-              \begin{figure}[h]
-                  \centering
-                  \includegraphics[scale=0.5]{figures/graph_data_flow.png}
-              \end{figure}
+              %   \begin{figure}[h]
+              %       \centering
+              %       \includegraphics[scale=0.5]{figures/graph_data_flow.png}
+              %   \end{figure}
+
+              \begin{center}
+                  \begin{tikzpicture}[
+                          node distance=0.5cm,
+                          box/.style={
+                                  draw,
+                                  rectangle,
+                                  rounded corners,
+                                  minimum width=1.5cm,
+                                  minimum height=0.8cm,
+                                  align=center,
+                                  font=\sffamily
+                              },
+                          edge/.style={
+                                  ->,
+                                  >=Stealth,
+                                  thick
+                              }
+                      ]
+
+                      % Узлы графа
+                      \node[box] (rs1) {rs1};
+                      \node[box, below left=of rs1] (a1) {a1};
+                      \node[box, below right=of rs1] (a2) {a2};
+
+                      % Рёбра графа
+                      \draw[edge] (rs1) -- (a1);
+                      \draw[edge] (rs1) -- (a2);
+
+                  \end{tikzpicture}
+              \end{center}
 
     \end{enumerate}
 
@@ -559,8 +645,8 @@ rs1_val = X(a1) @ X(a2);
 
     \begin{enumerate}
         \item Для анализтора написаны модульные и интеграционные тесты
-        \item Тестовое покрытие состовляет 80 процентов
-        \item CI для проверки успешности сборки проекта и прохождения тестов
+        \item Тестовое покрытие состовляет 81.36\%
+        \item \texttt{CI} для проверки успешности сборки проекта и прохождения тестов
     \end{enumerate}
 
 \end{frame}
