@@ -5,17 +5,17 @@
 \label{sec:task}
 
 Целью работы является валидация спецификации RISC-V ISA в LLVM относительно Sail.
-Для её выполнения были поставлены следующие задачи:
+Для её выполнения были поставлены следующие задачи.
 \begin{enumerate}
-    \item разработать прототип статического анализатора, который будет включать следующие анализы:
+    \item Разработать прототип статического анализатора, который будет включать следующие анализы:
           \begin{itemize}
               \item поиск входных и выходных операндов инструкций;
-              \item определение, может ли инструкция читать или писать память;
+              \item определение, может ли инструкция читать или писать память.
           \end{itemize}
-    \item при помощи статического анализатора сравнить следующие спецификации RISC-V ISA:
+    \item С помощью статического анализатора провалидировать спецификацию RISC-V ISA.
           \begin{itemize}
-              \item LLVM v19 против sail-riscv\footnote{\url{https://github.com/riscv/sail-riscv/tree/05b845c91d1c1db7b361fc8d06e815b54ca0b07a} (дата обращения: \DTMdate{2025-05-17}).};
-              \item Расширение \texttt{P} (Version 0.9.11-draft-20211209\footnote{\url{https://tools.cloudbear.ru/docs/riscv-p-extension-0.9.11-20211209.pdf} (дата обращения: \DTMdate{2025-05-17}).}) в LLVM против sail-riscv-p\footnote{\url{https://github.com/umcann123/sail-riscv-p} (дата обращения: \DTMdate{2025-05-17}).}.
+              \item В LLVM 19 против sail-riscv\footnote{\url{https://github.com/riscv/sail-riscv/tree/05b845c91d1c1db7b361fc8d06e815b54ca0b07a} (дата обращения: \DTMdate{2025-05-17}).}.
+              \item Расширения \texttt{P} в LLVM\footnote{Version 0.9.11-draft-20211209} против sail-riscv-p\footnote{\url{https://github.com/umcann123/sail-riscv-p} (дата обращения: \DTMdate{2025-05-17}).}.
                     % \begin{itemize}
                     %     \item дополнительно определить для каждой инструкции какие контрольно-статусные регистры (CSRs) она читает и пишет.
                     % \end{itemize}
