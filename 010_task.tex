@@ -4,24 +4,23 @@
 \section{Постановка задачи}
 \label{sec:task}
 
-Целью работы является валидация спецификации RISC-V ISA в
-LLVM относительно Sail.
+Целью работы является валидация спецификации RISC-V ISA в LLVM относительно Sail.
 Для её выполнения были поставлены следующие задачи:
 \begin{enumerate}
     \item разработать прототип статического анализатора, который будет включать следующие анализы:
           \begin{itemize}
               \item поиск входных и выходных операндов инструкций;
-              \item определение, обращается ли инструкция к памяти;
+              \item определение, может ли инструкция читать или писать память;
           \end{itemize}
     \item при помощи статического анализатора сравнить следующие спецификации RISC-V ISA:
           \begin{itemize}
               \item LLVM v19 против sail-riscv\footnote{\url{https://github.com/riscv/sail-riscv/tree/05b845c91d1c1db7b361fc8d06e815b54ca0b07a} (дата обращения: \DTMdate{2025-05-17}).};
-              \item <<P>> extension (Version 0.9.11-draft-20211209\footnote{\url{https://tools.cloudbear.ru/docs/riscv-p-extension-0.9.11-20211209.pdf} (дата обращения: \DTMdate{2025-05-17}).}) в LLVM против sail-riscv-p\footnote{\url{https://github.com/umcann123/sail-riscv-p} (дата обращения: \DTMdate{2025-05-17}).};
-                    \begin{itemize}
-                        \item дополнительно определить для каждой инструкции какие контрольно-статусные регистры (CSRs) она читает и пишет;
-                    \end{itemize}
+              \item Расширение \texttt{P} (Version 0.9.11-draft-20211209\footnote{\url{https://tools.cloudbear.ru/docs/riscv-p-extension-0.9.11-20211209.pdf} (дата обращения: \DTMdate{2025-05-17}).}) в LLVM против sail-riscv-p\footnote{\url{https://github.com/umcann123/sail-riscv-p} (дата обращения: \DTMdate{2025-05-17}).}.
+                    % \begin{itemize}
+                    %     \item дополнительно определить для каждой инструкции какие контрольно-статусные регистры (CSRs) она читает и пишет.
+                    % \end{itemize}
           \end{itemize}
-    \item протестировать анализатор.
+          % \item протестировать анализатор.
           % \item реализовать это (раздел~\ref{subsec:task1});
           % \item спроектировать то-то (раздел~\ref{subsec:task2}) наилучшим образом;
           % \item протестировать на том-то (раздел~\ref{subsec:task3}) и обогнать тех-то;

@@ -510,7 +510,7 @@ def ADD : ALU_rr<0b0000000, 0b000, "add", Commutable=1>,
               \end{itemize}
         \item Запись
               \begin{itemize}
-                  \item Если необходимо обновить бит A (accessed) или D (dirty) у записи таблицы страниц, которая содержит физический адрес
+                  \item Если необходимо обновить бит A (accessed) или D (dirty) у записи таблицы страниц, которая содержит адрес
               \end{itemize}
     \end{itemize}
 
@@ -578,9 +578,26 @@ function clause execute (ITYPE (imm, rs1, rd, op)) = {
 \end{frame}
 
 
-
 \begin{frame}[fragile]
     \frametitle{Дополнительный слайд. Sail-riscv (4)}
+
+    \begin{lstlisting}[caption={Пример \texttt{execute} функции, которая вызывает другой \texttt{execute}}, language=sail, escapechar=!, frame=single]
+function clause execute (C_LD(uimm, rsc, rdc)) = {
+  let imm : bits(12) = zero_extend(uimm @ 0b000);
+  let rd = creg2reg_idx(rdc);
+  let rs = creg2reg_idx(rsc);
+  execute(LOAD(imm, rs, rd, false, DOUBLE, false, false))
+}
+    \end{lstlisting}
+
+    Load a 64-bit value from memory into register rdc.
+    It computes an effective address by adding the zero-extended offset, scaled by 8, to the base address in register rsc.
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+    \frametitle{Дополнительный слайд. Sail-riscv (5)}
 
     \begin{lstlisting}[caption={Пример необходимости удаления неиспользуемых выражений после специализации функции}, language=sail, escapechar=!, frame=single]
 function clause execute (PEXT_32_16_MUL_ADD(rs2, rs1, rd, op)) = {
