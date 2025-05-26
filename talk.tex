@@ -20,6 +20,13 @@
 
 \usepackage{xurl}
 
+\newcommand\blfootnote[1]{
+    \begingroup
+    \renewcommand\thefootnote{}\footnote{#1}
+    \addtocounter{footnote}{-1}
+    \endgroup
+}
+
 \newcommand{\academicGroup}{\my@title@group@ru}
 \newcommand{\advisorChair}{\my@title@chair@ru}
 % То, что в квадратных скобках, отображается внизу по центру каждого слайда.
@@ -89,7 +96,7 @@
 
         \item Sail\footnote[frame]{\url{https://github.com/rems-project/sail/}} --- язык для описания моделей процессорных архитектур. Позволяет задать семантику исполнения процессорных инструкций
               \begin{itemize}
-                  \item sail-riscv\footnote[frame]{\url{https://github.com/riscv/sail-riscv}} --- формальная, поведенческая спецификация RISC-V ISA
+                  \item Sail-riscv\footnote[frame]{\url{https://github.com/riscv/sail-riscv}} --- формальная, поведенческая спецификация RISC-V ISA
               \end{itemize}
 
         \item LLVM\footnote[frame]{\url{https://llvm.org}} --- инфраструктура для компиляторов
@@ -158,7 +165,7 @@
 
     \begin{itemize}
         \item Sail-riscv\footnote[frame]{\url{https://github.com/riscv/sail-riscv}} --- это модель архитектуры RISC-V на Sail
-        \item Модель представляет из себя реализацию интерпретатора инструкций RISC-V
+        \item Модель представляет из себя реализацию интерпретатора инструкций RISC-V ISA
               % \item Модель можно скомпилировать в эмулятор на \C{} или \OCaml{}, который интерпретирует \texttt{elf} файлы
 
               \begin{itemize}
@@ -219,10 +226,10 @@ function clause execute( ADD(rs2, rs1, rd) ) = {
 
     \begin{lstlisting}[caption={}, language=sail, escapechar=!, label=rtype_speced]
 function clause execute ( ADD(rs2, rs1, rd) ) = {
-    let rs1_val = !\colorbox{green!50}{X(rs1)}!;
-    let rs2_val = !\colorbox{green!50}{X(rs2)}!;
-    let result : xlenbits = rs1_val + rs2_val;
-    !\colorbox{yellow!50}{X(rd)}! = result
+    let rs1_val = !\colorbox{green!50}{X(rs1)}!;                       // read the rs1
+    let rs2_val = !\colorbox{green!50}{X(rs2)}!;                       // read the rs2
+    let result : xlenbits = rs1_val + rs2_val; // compute
+    !\colorbox{yellow!50}{X(rd)}! = result                             // write to rd
     RETIRE_SUCCESS
 }
     \end{lstlisting}
@@ -283,7 +290,7 @@ function clause execute ( ADD(rs2, rs1, rd) ) = {
                       %     X(rd) = result
 
                       % \end{lstlisting}
-                \item Чтение или запись памяти может происходить при трансляции виртуального адреса в физический. Такие обращения игнорировались
+                      % \item Чтение или запись памяти может происходить при трансляции виртуального адреса в физический. Такие обращения игнорировались
 
             \end{itemize}
         \end{column}
@@ -419,35 +426,35 @@ X(a1) @ X(a2)
 
 
 
-% \footnote[frame]{\url{https://github.com/s-khechnev/llvm_td_lint_playground/blob/ins_outs_regs/Results.md}}
-\begin{frame}[fragile]{Найденные расхождения}
+% \footnote[frame]{\url{https://github.com/kakadu/llvm_vs_sail/blob/master/Results.md}}
+\begin{frame}{Найденные расхождения\footnote[frame]{\url{https://github.com/kakadu/llvm_vs_sail/blob/master/Results.md}}}
 
     \begin{itemize}
         \item Расширение \texttt{C}
               \begin{itemize}
-                  \item Для 10 инструкций \texttt{SP} (stack pointer) не является явным аргументом в sail-riscv
+                  \item У 10 инструкций в sail-riscv регистр \texttt{SP} (stack pointer) не является явным аргументом:
                         \begin{itemize}
-                            \item \texttt{c.addi16sp}
-                            \item \texttt{c.fsdsp}
-                            \item ...
+                            \item \texttt{c.addi16sp}, \texttt{c.addi4spn}, \texttt{c.fldsp}, \texttt{c.flwsp}, \texttt{c.fsdsp}, \texttt{c.fswsp}, \texttt{c.ldsp}, \texttt{c.lwsp}, \texttt{c.sdsp}, \texttt{c.swsp}.
                         \end{itemize}
               \end{itemize}
         \item Расширение \texttt{V}
               \begin{itemize}
-                  \item Для 26 инструкций \texttt{vd} не является входным операндом в LLVM
-                        % \begin{itemize}
-                        %     \item vadc.vim
-                        %     \item vmorn.mm
-                        %     \item ...
-                        % \end{itemize}
-                  \item Для 277 инструкций \texttt{vd} и \texttt{v0} не является входным операндом в LLVM
-                        % \begin{itemize}
-                        %     \item vaaddu.vv
-                        %     \item vmfeq.vf
-                        %     \item ...
-                        % \end{itemize}
+                  \item Для 28 инструкций \texttt{vd} не является входным операндом в LLVM:
+                        \begin{itemize}
+                            \item \texttt{vadc.vim}, \texttt{vfmerge.vfm}, \texttt{vmadc.vv} ...
+                        \end{itemize}
+                  \item Для 277 инструкций \texttt{vd} и \texttt{v0} не является входным операндом в LLVM:
+                        \begin{itemize}
+                            \item \texttt{vaaddu.vv}, \texttt{vand.vi}, \texttt{vxor.vx} ...
+                        \end{itemize}
+              \end{itemize}
+        \item Расширение \texttt{P}
+              \begin{itemize}
+                  \item WIP
               \end{itemize}
     \end{itemize}
+
+    \blfootnote{Код проекта}
 
 \end{frame}
 
@@ -608,16 +615,14 @@ function clause execute (ITYPE (imm, rs1, rd, op)) = {
     \frametitle{Дополнительный слайд. Sail-riscv (4)}
 
     \begin{lstlisting}[caption={Пример \texttt{execute} функции, которая вызывает другой \texttt{execute}}, language=sail, escapechar=!, frame=single]
-function clause execute (C_LD(uimm, rsc, rdc)) = {
-  let imm : bits(12) = zero_extend(uimm @ 0b000);
+function clause execute (C_ADDI4SPN(rdc, nzimm)) = {
+  let imm : bits(12) = (0b00 @ nzimm @ 0b00);
   let rd = creg2reg_idx(rdc);
-  let rs = creg2reg_idx(rsc);
-  execute(LOAD(imm, rs, rd, false, DOUBLE, false, false))
+  execute(ITYPE(imm, sp, rd, RISCV_ADDI))
 }
     \end{lstlisting}
 
-    Load a 64-bit value from memory into register rdc.
-    It computes an effective address by adding the zero-extended offset, scaled by 8, to the base address in register rsc.
+    Добавляет ненулевое непосредственное значение, расширенное нулями и умноженное на 4, к регистру \texttt{SP} (stack pointer) и записывает результат в \texttt{rdc}.
 
 \end{frame}
 
