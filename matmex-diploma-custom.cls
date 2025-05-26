@@ -307,6 +307,9 @@
                 Научный руководитель:\\
                 \my@title@supervisorPosition@ru\ \my@title@supervisor@ru\\
                 \vskip 1em
+                Консультант:\\
+                \my@title@consultantPosition@ru\ \my@title@consultant@ru\\
+                \vskip 1em
                 Рецензент:\\
                 \my@title@reviewerPosition@ru\ \my@title@reviewer@ru\\
             }
@@ -409,6 +412,9 @@
                 \vskip 5em
                 Scientific supervisor:\\
                 \my@title@supervisorPosition@en\ \my@title@supervisor@en\\
+                \vskip 1em
+                Consultant:\\
+                \my@title@consultantPosition@en\ \my@title@consultant@en\
                 \vskip 1em
                 Reviewer:\\
                 \my@title@reviewerPosition@en\ \my@title@reviewer@en\\
