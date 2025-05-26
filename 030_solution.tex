@@ -76,7 +76,7 @@ function clause execute (ITYPE (imm, rs1, rd, RISCV_ADDI)) = {
 Однако после описанной выше специализации в теле функции могут остаться выражения, результат которых нигде не используется.
 При этом такие выражения могут негативно влиять на анализ. Например.
 
-\begin{lstlisting}[caption={Пример функции, после наивной специализации которой могут остаться неиспользуемые выражения, негативно влияющие на дальнейший анализ}, language=sail, numbers=left, numberstyle=\color{gray}, escapechar=!, label=remove_exprs_example]
+\begin{lstlisting}[caption={Пример функции, после специализации которой могут остаться неиспользуемые выражения, негативно влияющие на дальнейший анализ}, language=sail, numbers=left, numberstyle=\color{gray}, escapechar=!, label=remove_exprs_example]
 function clause execute (PEXT_32_16_MUL_ADD(rs2, rs1, rd, op)) = {
  let rs1_val = X(rs1); let rs2_val = X(rs2); let !\colorbox{yellow!20}{rd\_val}! = X(rd);
  result : xlenbits = zeros();
@@ -217,7 +217,7 @@ function clause execute(PEXT_64BITS_ADD_SUB(rs2, rs1, rd, op)) =
   }
   else { ... };
   results = match op {
-    ADD64   => rs1_val + rs2_val,
+    ADD64 => rs1_val + rs2_val,
     ...
   };
   if sizeof(xlen) == 32
