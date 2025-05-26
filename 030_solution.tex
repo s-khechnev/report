@@ -19,8 +19,8 @@
           \item выходные операнды (по ключу \texttt{OutOperandList});
           \item неявные входные операнды (по ключу \texttt{Uses});
           \item неявные выходные операнды (по ключу \texttt{Defs});
-          \item читает ли инструкция память (по ключу \texttt{mayLoad});
-          \item пишет ли инструкция в память (по ключу \texttt{mayStore});
+          \item может ли инструкция читать память (по ключу \texttt{mayLoad});
+          \item может ли инструкция писать в память (по ключу \texttt{mayStore});
           \item для какой разрядности (\texttt{RV32} или \texttt{RV64}, или для обеих) определена инструкция (по ключу \texttt{Predicates}).
         \end{itemize}
         Наконец, анализатор генерирует модуль, который содержит всю собранную информацию о свойствах каждой инструкции и предоставляет интерфейс для доступа к информации.
@@ -61,7 +61,7 @@
 
 Например, для специализации \texttt{ITYPE (imm, rs1, rd, RISCV\_ADDI)} (специализирован только последний параметр) тело, соответствующей \texttt{execute} функции, определённой на листинге \ref{execute_itype}, после специализации выглядело следующим образом.
 
-\begin{lstlisting}[caption={}, language=sail]
+\begin{lstlisting}[caption={Пример специализированной по параметру \texttt{execute} функции из листинга \ref{execute_itype}}, language=sail, frame=single]
 function clause execute (ITYPE (imm, rs1, rd, RISCV_ADDI)) = {
   let rs1_val = X(rs1);               // read the rs1
   let immext : xlenbits = EXTS(imm);  // sign-extend imm
@@ -71,9 +71,10 @@ function clause execute (ITYPE (imm, rs1, rd, RISCV_ADDI)) = {
 }
 \end{lstlisting}
 
-Однако после описанной выше специализации могут остаться выражения, результат которых нигде не используется. Например.
+Однако после описанной выше специализации в теле функции могут остаться выражения, результат которых нигде не используется.
+При этом такие выражения могут негативно влиять на анализ. Например.
 
-\begin{lstlisting}[caption={}, language=sail, numbers=left, numberstyle=\color{gray}, escapechar=!]
+\begin{lstlisting}[caption={Пример функции, после наивной специализации которой могут остаться неиспользуемые выражения, негативно влияющие на дальнейший анализ}, language=sail, numbers=left, numberstyle=\color{gray}, escapechar=!, label=remove_exprs_example]
 function clause execute (PEXT_32_16_MUL_ADD(rs2, rs1, rd, op)) = {
  let rs1_val = X(rs1); let rs2_val = X(rs2); let !\colorbox{yellow!20}{rd\_val}! = X(rd);
  result : xlenbits = zeros();
@@ -91,28 +92,21 @@ function clause execute (PEXT_32_16_MUL_ADD(rs2, rs1, rd, op)) = {
  RETIRE_SUCCESS
 }
 \end{lstlisting}
-Тело функции сокращено для краткости. Будем считать, что после 11 строчки ни один идентификатор, определённый ранее, не используется.
 
-На функции выше, параметр \texttt{op} имеет тип перечисления со значениями \texttt{SMMWB}, \texttt{KMMAWB}...
-Если специализировать тело этой функции по параметру \texttt{op} со значением \texttt{SMMWB}, то выражение
-\begin{lstlisting}[caption={}, language=sail, numberstyle=\color{gray}, escapechar=!]
-result[(i+31)..i] = match op {
-  SMMWB  => smmw(rs1_word, slice(rs2_word, 0, 16)),
-  KMMAWB => kmmaw(rs1_word, slice(rs2_word, 0, 16), !\colorbox{yellow!20}{rd\_word}!),
-  ...
-}
-\end{lstlisting}
-сократится до
-\begin{lstlisting}[caption={}, language=sail, numberstyle=\color{gray}, escapechar=!]
+\begin{lstlisting}[caption={Вспомогательные выражения}, language=sail, numbers=left, numberstyle=\color{gray}, escapechar=!, label=helper-exprs]
+let rd_val = X(rd);
 result[(i+31)..i] = smmw(rs1_word, slice(rs2_word, 0, 16));
 \end{lstlisting}
+
+Тело функции из листинга \ref{remove_exprs_example} сокращено для краткости. Будем считать, что после 10 строчки ни один идентификатор, определённый ранее, не используется.
+
+В функции листинга \ref{remove_exprs_example} параметр \texttt{op} имеет тип перечисления со значениями \texttt{SMMWB}, \texttt{KMMAWB} ...
+Если специализировать тело этой функции по параметру \texttt{op} со значением \texttt{SMMWB}, то выражение на 8 строчке сократится до выражения, представленного на строчке 2 листинга \ref{helper-exprs}.
 Но после такой специализации связка (binding) \texttt{rd\_word}, определенная на строке 7, нигде больше не используется.
 Поэтому её определение можно удалить из специализированной версии функции.
-При этом после такого удаления становится не используемой связка \texttt{rd\_val}, поэтому выражение (которое определено на 2 строке и выполняет чтение из регистра!)
-\begin{lstlisting}[caption={}, language=sail]
-let rd_val = X(rd);
-\end{lstlisting}
-можно удалить. Таким образом, если не производить подобный проход, то для инструкции \texttt{SMMWB} и многих других было бы найдено ложно-положительное чтение из регистра \texttt{rd}.
+При этом после такого удаления становится не используемой связка \texttt{rd\_val}, поэтому выражение (в котором происходит чтение регистра!) определения этой связки (строчка 1 листинга \ref{helper-exprs}) можно удалить из 2 строчки листинга \ref{remove_exprs_example}.
+
+Таким образом, если не производить подобный проход, то для инструкции \texttt{SMMWB} и многих других было бы найдено ненужное чтение из регистра \texttt{rd}.
 
 \subsection{Поиск входных и выходных операндов}
 \label{sec:ins_outs_analyze}
@@ -245,7 +239,7 @@ X(rs1 | 0b00001) @ X(rs1 & 0b11110)
 Для анализа типа операнда использовался эвристический алгоритм. Рассмотрим алгоритм на примере выражения из листинга \ref{read_op}.
 
 \begin{enumerate}
-  \item Представление программы в ANF \cite{flanagan1993essence} (A-Normal Form --- форма представления программы, при которой все аргументы функций тривиальны, т.е. константы или переменные).
+  \item Представление программы в ANF \cite{flanagan1993essence} (A-Normal Form --- форма представления программы, при которой все аргументы функций тривиальны, т.~е. константы или переменные).
         \begin{lstlisting}[caption={ANF выражения из листинга \ref{read_op}}, language=sail, label=anf]
 let a1 = rs1 | 0b00001 in
 let a2 = rs1 & 0b11110 in
@@ -290,9 +284,20 @@ X(a1) @ X(a2)
 
 \subsubsection{Анализ чтений и записей контрольно-статусных регистров}
 
+В Sail для определения регистра существует ключевое слово \texttt{register}.
+Все регистры представляют из себя глобальные переменные некоторого типа, с которыми можно работать как с обычной переменной.
+
+\begin{lstlisting}[caption={Пример определения регистра в sail-riscv}, language=sail]
+register marchid : xlenbits
+\end{lstlisting}
+
 Для расширения \texttt{P} необходимо было дополнительно определить для каждой инструкции какие CSRs (Control/Status Registers) она может читать и писать.
 
-Для такого анализа
+Для того чтобы определить обращается ли какая-то специализация \texttt{execute} функции (другими словами инструкция) к контрольно-статусным регистрам, производился рекурсивный обход всех вызываемых ею функций.
+В процессе обхода отслеживались присваивания переменным. Если переменная представляла контрольно-статусный регистр, значит происходила запись в регистр, и такое обращение запоминалось.
+Аналогично, отслеживались использования переменных.
+Если используемая переменная --- контрольно-статусный регистр, значит происходило чтение этого регистра, и такое обращение запоминалось.
+
 
 \subsection{Тесты и CI}
 
@@ -303,38 +308,57 @@ X(a1) @ X(a2)
 
 Кроме этого, для того чтобы значительно ускорить выполнение CI, был собран \texttt{docker} образ\footnote{\url{https://hub.docker.com/r/skhechnev/ocaml-5.1.0-sail} (дата обращения: \DTMdate{2025-05-17}).}, в котором предустановлены все зависимости для сборки проекта и запуска тестов.
 
+
+
 \section{Найденные расхождения}
 
-Для LLVM версии 19 и sail-riscv\footnote{\url{https://github.com/riscv/sail-riscv/commits/05b845c91d1c1db7b361fc8d06e815b54ca0b07a} (дата обращения: \DTMdate{2025-05-17}).} при помощи анализатора были найдены следующие расхождения:
+
+Расхождения в LLVM 19 и sail-riscv\footnote{\url{https://github.com/riscv/sail-riscv/commits/05b845c91d1c1db7b361fc8d06e815b54ca0b07a} (дата обращения: \DTMdate{2025-05-17}).}.
 
 \begin{enumerate}
-  \item \texttt{sp} не является явным аргументом в sail-riscv для инструкций:
+  \item Регистр \texttt{SP} (stack pointer) не является явным аргументом в sail-riscv для инструкций:
         \texttt{c.addi16sp}, \texttt{c.addi4spn}, \texttt{c.fldsp}, \texttt{c.flwsp}, \texttt{c.fsdsp}, \texttt{c.fswsp}, \texttt{c.ldsp}, \texttt{c.lwsp}, \texttt{c.sdsp}, \texttt{c.swsp}.
 
-        % \item \texttt{Zreg} является неявным входным регистром в Sail для инструкций:
-        % \texttt{c.beqz}, \texttt{c.bnez}, \texttt{c.fldsp}, \texttt{c.li}, \texttt{c.mv}.
+        Инструкции имеют разный синтаксис.
 
-        % \item \texttt{Zreg} является неявным выходным регистром в Sail для инструкций:
-        % \texttt{c.j}, \texttt{c.jr}.
+        %         \begin{multicols}{2}
 
-  \item \texttt{RA} является неявным out регистром в sail-riscv для инструкций:
-        \texttt{c.jal}, \texttt{c.jalr}
+        %           \begin{lstlisting}[title={\centering\texttt{в LLVM}}, linewidth=5.4cm]
+        % c.addi16sp sp, simm6
+        % \end{lstlisting}
 
-  \item В sail-riscv \texttt{vd} --- входной регистр для инструкций:
-        \texttt{vadc.vim} \texttt{vadc.vvm} \texttt{vadc.vxm} \texttt{vcompress.vm} \texttt{vfmerge.vfm} \texttt{vmadc.vi} \texttt{vmadc.vim} \texttt{vmadc.vv} \texttt{vmadc.vvm} \texttt{vmadc.vx} \texttt{vmadc.vxm} \texttt{vmand.mm} \texttt{vmandn.mm} \texttt{vmerge.vim} \texttt{vmerge.vvm} \texttt{vmerge.vxm} \texttt{vmnand.mm} \texttt{vmnor.mm} \texttt{vmor.mm} \texttt{vmorn.mm} \texttt{vmsbc.vv} \texttt{vmsbc.vvm} \texttt{vmsbc.vx} \texttt{vmsbc.vxm} \texttt{vmxnor.mm} \texttt{vmxor.mm} \texttt{vsbc.vvm} \texttt{vsbc.vxm}.
+        %           \columnbreak
 
-  \item В sail-riscv \texttt{vd} и (неявно) \texttt{v0} --- входные регистры для инструкций:
-        \texttt{vaaddu.vv} \texttt{vaaddu.vx} \texttt{vaadd.vv} \texttt{vaadd.vx} \texttt{vadd.vi} \texttt{vadd.vv} \texttt{vadd.vx} \texttt{vand.vi} \texttt{vand.vv} \texttt{vand.vx} \texttt{vasubu.vv} \texttt{vasubu.vx} \texttt{vasub.vv} \texttt{vasub.vx} \texttt{vdivu.vv} \texttt{vdivu.vx} \texttt{vdiv.vv} \texttt{vdiv.vx} \texttt{vfadd.vf} \texttt{vfadd.vv} \texttt{vfclass.v} \texttt{vfcvt.f.xu.v} \texttt{vfcvt.f.x.v} \texttt{vfcvt.rtz.x.f.v} \texttt{vfcvt.rtz.xu.f.v} \texttt{vfcvt.x.f.v} \texttt{vfcvt.xu.f.v} \texttt{vfdiv.vf} \texttt{vfdiv.vv} \texttt{vfirst.m} \texttt{vfmacc.vf} \texttt{vfmacc.vv} \texttt{vfmadd.vf} \texttt{vfmadd.vv} \texttt{vfmax.vf} \texttt{vfmax.vv} \texttt{vfmin.vf} \texttt{vfmin.vv} \texttt{vfmsac.vf} \texttt{vfmsac.vv} \texttt{vfmsub.vf} \texttt{vfmsub.vv} \texttt{vfmul.vf} \texttt{vfmul.vv} \texttt{vfmv.s.f} \texttt{vfmv.v.f} \texttt{vfncvt.f.f.w} \texttt{vfncvt.f.xu.w} \texttt{vfncvt.f.x.w} \texttt{vfncvt.rod.f.f.w} \texttt{vfncvt.rtz.x.f.w}...\footnote{Полный список разхождений --- \url{https://github.com/s-khechnev/llvm_td_lint_playground/blob/ins_outs_regs/Results.md} (дата обращения: \DTMdate{2025-03-12}).}.
+        %           \begin{lstlisting}[title={\centering\texttt{в sail-riscv}}]
+        % c.addi16sp simm6
+        % \end{lstlisting}
+        %         \end{multicols}
 
+  \item Для расширения векторных инструкций было найдено два типа расхождений:
+        \begin{itemize}
+          \item для 28 инструкций в LLVM не указывается, что регистр \texttt{vd} является входным;
+          \item для 255 инструкций в LLVM не указывается, что регистры \texttt{v0} и \texttt{vd} являются входными.
+        \end{itemize}
+        В sail-riscv регистр \texttt{vd} является входным, значение этого регистра используется для составления маски, от которой зависит результат.
 
 \end{enumerate}
 
-Для реализации расширения <<P>> в LLVM и в sail-riscv-p\footnote{\url{https://github.com/umcann123/sail-riscv-p} (дата обращения: \DTMdate{2024-12-17}).} при помощи анализатора были найдены следующие расхождения:
+Расхождения в расширении \texttt{P} в LLVM и sail-riscv-p\footnote{\url{https://github.com/umcann123/sail-riscv-p} (дата обращения: \DTMdate{2025-04-17}).}.
+\begin{enumerate}
+  \item В sail-riscv-p не хватает инструкции \texttt{rev}, в LLVM --- \texttt{pktt32}, \texttt{clo32}, \texttt{clo8}, \texttt{clo16}, \texttt{pkbb32}.
 
-\begin{itemize}
-  \item В sail-riscv-p \texttt{rd} является входным регистром для инструкций:
-        \texttt{ave}, \texttt{bitrev}, \texttt{kaddw}, \texttt{kdmbb}, \texttt{kdmbb16}, \texttt{kdmbt}, \texttt{kdmbt16}, \texttt{kdmtt}, \texttt{kdmtt16}, \texttt{khmbb16}, \texttt{khmbt16}, \texttt{khmtt16}, \texttt{kmda}, \texttt{kmmwb2}, \texttt{kmmwb2.u}, \texttt{kmmwt2}, \texttt{kmmwt2.u}, \texttt{kmxda}, \texttt{ksllw}, \texttt{kslraw}, \texttt{kslraw.u}, \texttt{ksubw}, \texttt{kwmmul}, \texttt{kwmmul.u}, \texttt{smbb16}, \texttt{smbt16}, \texttt{smdrs}, \texttt{smds}, \texttt{smmul}, \texttt{smmul.u}, \texttt{smmwb}, \texttt{smmwb.u}, \texttt{smmwt}, \texttt{smmwt.u}, \texttt{smtt16}, \texttt{smxds}, \texttt{sra.u}, \texttt{ukaddw}, \texttt{uksubw}
-\end{itemize}
+
+  \item В LLVM указано для 22 инструкций, что они читают контрольно-статусный регистр \texttt{vxsat} (используется как флаг переполнения).
+        В sail-riscv-p 124 инструкции только пишут в регистр \texttt{vxsat}.
+        Других обращений к контрольно-статусным регистрам не найдено.
+
+\end{enumerate}
+
+
+\blfootnote{Полный список разхождений --- \url{https://github.com/Kakadu/llvm_vs_sail/blob/master/Results.md} (дата обращения: \DTMdate{2025-04-25}).}
+
+
+
 
 
 
