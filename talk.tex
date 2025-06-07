@@ -20,11 +20,19 @@
 
 \usepackage{xurl}
 
+\usetikzlibrary{calc,tikzmark}
 \newcommand\blfootnote[1]{
     \begingroup
     \renewcommand\thefootnote{}\footnote{#1}
     \addtocounter{footnote}{-1}
     \endgroup
+}
+
+\def\tikzHighlight(#1)(#2){
+  \draw[fill=gray,opacity=0.1]
+    ([shift={(-3pt,2ex)}]pic cs:#1)
+    rectangle
+    ([shift={(3pt,-0.65ex)}]pic cs:#2);
 }
 
 \newcommand{\academicGroup}{\my@title@group@ru}
@@ -34,7 +42,7 @@
 % То, что в квадратных скобках, отображается в левом нижнем углу.
 \author[\my@title@author@ru]{\my@title@author@ru, группа \academicGroup}
 \institute[СПбГУ]{}
-\date[25 мая 2025 г.]{}
+\date[9 июня 2025 г.]{}
 \newcommand{\supervisor}{\my@title@supervisor@ru}
 \newcommand{\supervisorPosition}{\my@title@supervisorPosition@ru}
 \newcommand{\consultant}{\my@title@consultant@ru}
@@ -66,9 +74,9 @@
         % У научного руководителя должна быть указана научная степень
         \textbf{Научный руководитель:}  \supervisorPosition~\supervisor \\
         % Консультанта может и не быть. Должна быть указана должность или ученая степень
-        % \textbf{Консультант:}  \consultantPosition~\consultant \\
+        \textbf{Консультант:}  \consultantPosition~\consultant \\
         % Для учебной практики не обязателен. Должна быть указана должность или ученая степень
-        % \textbf{Рецензент:} \reviewerPosition~\reviewer \\
+        \textbf{Рецензент:} \reviewerPosition~\reviewer \\
         % TODO: добавить условие на включение рецензента в зависимости от вида отчета
     }
     \makeatother
@@ -121,10 +129,10 @@
                   \item Определение, может ли инструкция писать или читать память
               \end{itemize}
               % \item Протестировать статический анализатор
-        \item Используя статический анализатор, провалидировать следующие спецификации RISC-V ISA:
+        \item Используя статический анализатор, провалидировать спецификации RISC-V ISA:
               \begin{itemize}
-                  \item LLVM v19 против sail-riscv\footnote[frame]{\url{https://github.com/riscv/sail-riscv/tree/05b845c91d1c1db7b361fc8d06e815b54ca0b07a}}
-                  \item \texttt{P} \texttt{extension} (version 0.9.11-draft-20211209) в LLVM против sail-riscv-p\footnote[frame]{\url{https://github.com/umcann123/sail-riscv-p}}
+                  \item В LLVM v19 против sail-riscv\footnote[frame]{\url{https://github.com/riscv/sail-riscv/tree/05b845c91d1c1db7b361fc8d06e815b54ca0b07a}}
+                  \item Расширения \texttt{P} (version 0.9.11-draft-20211209) в LLVM против sail-riscv-p\footnote[frame]{\url{https://github.com/umcann123/sail-riscv-p}}
                         % \begin{itemize}
                         %     \item Для sail-riscv-p дополнительно определить для каждой инструкции какие CSR регистры читает и пишет
                         % \end{itemize}
@@ -136,7 +144,7 @@
 
     \begin{itemize}
         \item TableGen\footnote[frame]{\url{https://llvm.org/docs/TableGen/}} --- декларативный язык, который используется в LLVM для описания предметно-ориентированной информации
-        \item В частности, для описания спецификации ISA целевых платформ
+        \item В частности для описания спецификации ISA целевых платформ
         \item Для каждой инструкции описываются следующие свойства:
               \begin{itemize}
                   \item Мнемоника
@@ -282,7 +290,7 @@ function clause execute ( ADD(rs2, rs1, rd) ) = {
         \begin{column}{0.6\textwidth}
             \begin{itemize}
                 \item Функции \textbf{\texttt{read\_ram}} и \textbf{\texttt{write\_ram}} являются примитивными для работы с памятью
-                \item Для каждой функции \texttt{execute} проверялась достижимость вершин \textbf{\texttt{read\_ram}} и \textbf{\texttt{write\_ram}} в графе вызовов функций
+                \item Для каждой \texttt{execute} функции проверялась достижимость вершин \textbf{\texttt{read\_ram}} и \textbf{\texttt{write\_ram}} в графе вызовов функций
                       % \begin{lstlisting}[caption={}, language=Caml, escapechar=!]
                       % function clause execute(LOAD(imm, rs1, rd)) =
                       %     let addr : xlenbits = X(rs1) + EXTS(imm);
@@ -342,9 +350,9 @@ function clause execute ( ADD(rs2, rs1, rd) ) = {
 
     \begin{itemize}
         \item RISC-V --- модульная архитектура, позволяющая расширять ISA при помощи расширений
-        \item Расширение P предназначено для ускорения целочисленных и fixed point вычислений
+        \item Расширение \texttt{P} предназначено для ускорения целочисленных и fixed point вычислений
               % Применяется для ускорения DSP (Digital Signal Processing) алогритмов
-        \item Sail-riscv-p\footnote[frame]{\url{https://github.com/umcann123/sail-riscv-p}} --- это форк sail-riscv с реализацией расширения P
+        \item Sail-riscv-p\footnote[frame]{\url{https://github.com/umcann123/sail-riscv-p}} --- это форк sail-riscv с реализацией расширения \texttt{P}
         \item Для 32-ух битного RISC-V операнды некоторых инструкций кодируют пару регистров
               \begin{lstlisting}[caption={}, language=sail, frame=single]
 function clause execute(PEXT_64BITS_ADD_SUB(rs2, rs1, rd, op))
@@ -366,7 +374,7 @@ X(rs1 | 0b00001) @ X(rs1 & 0b11110)
     \end{adjustwidth}
 
     \begin{enumerate}
-        \item Представление программы в ANF, A-Normal Form --- все аргументы функций константы или переменные
+        \item Представление программы в ANF, A-Normal Form --- все аргументы вызовов функций константы или переменные
               \begin{lstlisting}[caption={}, language=sail, frame=single]
 let a1 = rs1 | 0b00001 in
 let a2 = rs1 & 0b11110 in
@@ -427,55 +435,45 @@ X(a1) @ X(a2)
 
 
 % \footnote[frame]{\url{https://github.com/kakadu/llvm_vs_sail/blob/master/Results.md}}
-\begin{frame}{Найденные расхождения\footnote[frame]{\url{https://github.com/kakadu/llvm_vs_sail/blob/master/Results.md}}}
+\begin{frame}{Найденные расхождения}
 
     \begin{itemize}
         \item Расширение \texttt{C}
               \begin{itemize}
-                  \item У 10 инструкций в sail-riscv регистр \texttt{SP} (stack pointer) не является явным аргументом:
+                  \item У 10 инструкций в sail-riscv регистр \texttt{SP} (stack pointer) не является явным аргументом
                         \begin{itemize}
-                            \item \texttt{c.addi16sp}, \texttt{c.addi4spn}, \texttt{c.fldsp}, \texttt{c.flwsp}, \texttt{c.fsdsp}, \texttt{c.fswsp}, \texttt{c.ldsp}, \texttt{c.lwsp}, \texttt{c.sdsp}, \texttt{c.swsp}.
+                            \item \texttt{c.addi16sp}, \texttt{c.addi4spn}, \texttt{c.fldsp}, \texttt{c.flwsp}, \texttt{c.fsdsp}, \texttt{c.fswsp}, \texttt{c.ldsp}, \texttt{c.lwsp}, \texttt{c.sdsp}, \texttt{c.swsp}
                         \end{itemize}
               \end{itemize}
         \item Расширение \texttt{V}
               \begin{itemize}
-                  \item У 28 инструкций \texttt{vd} не является входным операндом в LLVM:
-                        \begin{itemize}
-                            \item \texttt{vadc.vim}, \texttt{vfmerge.vfm}, \texttt{vmadc.vv} ...
-                        \end{itemize}
-                  \item У 277 инструкций \texttt{vd} и \texttt{v0} не является входным операндом в LLVM:
-                        \begin{itemize}
-                            \item \texttt{vaaddu.vv}, \texttt{vand.vi}, \texttt{vxor.vx} ...
-                        \end{itemize}
+                  \item У 430 инструкций в sail-riscv операнд \texttt{vd} является входным операндом
+                        %   \item Возможно это ложно-положительные расхождения, потому что LLVM напрямую не использует эти инструкции при кодогенерации, а генерирует спецаильные инструкции для кодогенерации с дополнительными свойствами
+                  \item Расхождения такого вида возникают, потому что эти инструкции напрямую не используются в LLVM при кодогенерации
               \end{itemize}
         \item Расширение \texttt{P}
               \begin{itemize}
-                  \item WIP
+                  \item В LLVM 22 инструкции читают регистр \texttt{vxsat} (используется как флаг переполнения)
+                  \item В sail-riscv-p 116 инструкций пишут в регистр \texttt{vxsat}
               \end{itemize}
     \end{itemize}
-
-    \blfootnote{Код проекта}
 
 \end{frame}
 
 \begin{frame}
     \frametitle{Результаты}
 
-    Таким образом, в рамках преддипломной практики были достигнуты следующие результаты:\footnote[frame]{Код --- \url{https://github.com/Kakadu/llvm_vs_sail}. Коммитер: \href{https://github.com/s-khechnev}{s-khechnev}}
+    Таким образом, в рамках ВКР были достигнуты следующие результаты:\footnote[frame]{Код --- \url{https://github.com/Kakadu/llvm_vs_sail}. Имя пользователя: \href{https://github.com/s-khechnev}{s-khechnev}}
     \begin{itemize}
-        \item разработан прототип анализатора, который реализует следующие анализы:
+        \item Разработан прототип анализатора, который реализует следующие анализы:
               \begin{itemize}
-                  \item поиск входных и выходных операндов инструкций
-                  \item определение, может ли инструкция читать или писать память
+                  \item Поиск входных и выходных операндов инструкций
+                  \item Определение, может ли инструкция читать или писать память
               \end{itemize}
-        \item при помощи анализатора провалидированы следующие спецификации RISC-V ISA:
+        \item С помощью статического анализатора провалидированы спецификации RISC-V ISA:
               \begin{itemize}
-                  \item LLVM v19 против sail-riscv
-                  \item P extension  в LLVM против sail-riscv-p\
-                        % \begin{itemize}
-                        %     \item для sail-riscv-p дополнительно определены для каждой инструкции какие CSR регистры читает и пишет
-                        % \end{itemize}
-
+                  \item В LLVM v19 против sail-riscv
+                  \item Расширения \texttt{P} (version 0.9.11-draft-20211209) в LLVM против sail-riscv-p
               \end{itemize}
 
     \end{itemize}
@@ -494,18 +492,56 @@ class ALU_rr<bits<7> funct7, bits<3> funct3, string opcodestr,
              bit Commutable = 0>
     : RVInstR<funct7, funct3, OPC_OP, (!\colorbox{green!40}{outs}! GPR:$!\colorbox{green!40}{rd}!),
                 (!\colorbox{yellow!40}{ins}! GPR:$!\colorbox{yellow!40}{rs1}!, GPR:$!\colorbox{yellow!40}{rs2}!),
-                opcodestr, "$!\colorbox{green!40}{rd}!, $!\colorbox{yellow!40}{rs1}!, $!\colorbox{yellow!40}{rs2}!"> {
+                !\colorbox{red!30}{opcodestr}!, "$!\colorbox{green!40}{rd}!, $!\colorbox{yellow!40}{rs1}!, $!\colorbox{yellow!40}{rs2}!"> {
   let isCommutable = Commutable;
 }
 
-def ADD : ALU_rr<0b0000000, 0b000, "add", Commutable=1>,
-           Sched<[WriteIALU, ReadIALU, ReadIALU]>;
+def ADD : ALU_rr<0b0000000, 0b000, !\colorbox{red!30}{"add"}!, Commutable=1>,
+           ...
 
     \end{lstlisting}
 
 \end{frame}
 
+\begin{frame}[fragile]
+    \frametitle{Дополнительный слайд. Инструкции RVV в LLVM}
 
+    \begin{lstlisting}[caption={}, language=json, escapechar=!, basicstyle=\fontsize{8}{8}\selectfont, numbers=left, numberstyle=\color{gray},xleftmargin=2em,framexleftmargin=1.5em]
+"!\color{blue}{VAADD\_VV}!": {
+  "AsmString": "!\textbf{vaadd.vv}!\t$!\color{green}\textbf{vd}!, $!\color{red}\textbf{vs2}!, $!\color{red}\textbf{vs1}!$!\color{red}\textbf{vm}!",
+  "InOperandList": {
+    "args": [
+      [ { "def": "VR" }, "!\color{red}\textbf{vs2}!" ],
+      [ { "def": "VR" }, "!\color{red}\textbf{vs1}!" ],
+      [ { "def": "VMaskOp" }, "!\color{red}\textbf{vm}!" ] ] },
+  "OutOperandList": { "args": [[{ "def": "VR" }, "!\color{green}\textbf{vd}!" ]]}
+},
+"PseudoVAADD_VV_MF8": {
+  "AsmString": "", // empty
+  "BaseInstr": { "def": "!\color{blue}{VAADD\_VV}!" },
+  "InOperandList": {
+    "args": [
+      [ { "def": "VR" }, "!\color{red}\textbf{rd}!" ],
+      [ { "def": "VR" }, "!\color{red}\textbf{rs2}!" ],
+      [ { "def": "VR" }, "!\color{red}\textbf{rs1}!" ],
+      [ { "def": "ixlenimm" }, "!\color{red}\textbf{rm}!" ],
+      [ { "def": "AVL" }, "!\color{red}\textbf{vl}!" ],
+      [ { "def": "ixlenimm" }, "!\color{red}\textbf{sew}!" ],
+      [ { "def": "ixlenimm" }, "!\color{red}\textbf{policy}!" ] ] },
+  "OutOperandList": { "args": [[{ "def": "VR" }, "!\color{green}\textbf{rd}!" ]]},
+  "isCodeGenOnly": 1 // only for code gen
+}
+    \end{lstlisting}
+
+    % \begin{tikzpicture}[use tikzmark]
+    %     %\tikzHighlight{s31}{e31};
+    %     \draw[fill=gray,opacity=0.1]
+    %     ([shift={(-3pt,2ex)}]pic cs:s31)
+    %     rectangle
+    %     ([shift={(3pt,-0.65ex)}]pic cs:e31);
+    % \end{tikzpicture}
+
+\end{frame}
 
 
 \begin{frame}[fragile]
