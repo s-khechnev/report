@@ -5,7 +5,7 @@
 
 \documentclass
   [ russian
-  , aspectratio=1610 % Для защит онлайн лучше использовать разрешение не 4х3
+  , aspectratio=169 % Для защит онлайн лучше использовать разрешение не 4х3
   ] {beamer}
 
 \usepackage{dblfnote}
@@ -40,7 +40,7 @@
 % То, что в квадратных скобках, отображается внизу по центру каждого слайда.
 \title[Валидация RISC-V ISA]{\my@title@title@ru}
 % То, что в квадратных скобках, отображается в левом нижнем углу.
-\author[\my@title@author@ru]{\my@title@author@ru, группа \academicGroup}
+\author[\my@title@author@ru]{\my@title@author@ru}
 \institute[СПбГУ]{}
 \date[9 июня 2025 г.]{}
 \newcommand{\supervisor}{\my@title@supervisor@ru}
@@ -123,13 +123,13 @@
     \vspace{1em}
     \textbf{Задачи}:
     \begin{itemize}
-        \item Разработать прототип статического анализатора, включающий следующие анализы:
+        \item Разработать прототип статического анализатора, включающий следующие анализы
               \begin{itemize}
                   \item Поиск входных и выходных операндов инструкций
                   \item Определение, может ли инструкция писать или читать память
               \end{itemize}
               % \item Протестировать статический анализатор
-        \item Используя статический анализатор, провалидировать спецификации RISC-V ISA:
+        \item Используя статический анализатор, провалидировать спецификации RISC-V ISA
               \begin{itemize}
                   \item В LLVM v19 против sail-riscv\footnote[frame]{\url{https://github.com/riscv/sail-riscv/tree/05b845c91d1c1db7b361fc8d06e815b54ca0b07a}}
                   \item Расширения \texttt{P} (version 0.9.11-draft-20211209) в LLVM против sail-riscv-p\footnote[frame]{\url{https://github.com/umcann123/sail-riscv-p}}
@@ -145,7 +145,7 @@
     \begin{itemize}
         \item TableGen\footnote[frame]{\url{https://llvm.org/docs/TableGen/}} --- декларативный язык, который используется в LLVM для описания предметно-ориентированной информации
         \item В частности для описания спецификации ISA целевых платформ
-        \item Для каждой инструкции описываются следующие свойства:
+        \item Для каждой инструкции описываются следующие свойства
               \begin{itemize}
                   \item Мнемоника
                   \item Код инструкции
@@ -249,6 +249,8 @@ function clause execute ( ADD(rs2, rs1, rd) ) = {
 
     \begin{center}
         \begin{tikzpicture}[
+                scale=0.8,
+                transform shape,
                 node distance=1cm,
                 box/.style={
                         draw,
@@ -351,7 +353,6 @@ function clause execute ( ADD(rs2, rs1, rd) ) = {
     \begin{itemize}
         \item RISC-V --- модульная архитектура, позволяющая расширять ISA при помощи расширений
         \item Расширение \texttt{P} предназначено для ускорения целочисленных и fixed point вычислений
-              % Применяется для ускорения DSP (Digital Signal Processing) алогритмов
         \item Sail-riscv-p\footnote[frame]{\url{https://github.com/umcann123/sail-riscv-p}} --- это форк sail-riscv с реализацией расширения \texttt{P}
         \item Для 32-ух битного RISC-V операнды некоторых инструкций кодируют пару регистров
               \begin{lstlisting}[caption={}, language=sail, frame=single]
@@ -426,7 +427,7 @@ X(a1) @ X(a2)
 
     \begin{enumerate}
         \item Для статического анализатора написаны модульные и интеграционные тесты
-        \item Тестовое покрытие составляет 81.36\%
+        \item Тестовое покрытие составляет 81.76\%
         \item \texttt{CI} для проверки успешности сборки проекта и прохождения тестов
     \end{enumerate}
 
@@ -449,7 +450,9 @@ X(a1) @ X(a2)
               \begin{itemize}
                   \item У 430 инструкций в sail-riscv операнд \texttt{vd} является входным операндом
                         %   \item Возможно это ложно-положительные расхождения, потому что LLVM напрямую не использует эти инструкции при кодогенерации, а генерирует спецаильные инструкции для кодогенерации с дополнительными свойствами
-                  \item Расхождения такого вида возникают, потому что эти инструкции напрямую не используются в LLVM при кодогенерации
+                        %   \item Расхождения такого вида возникают, потому что эти инструкции напрямую не используются в LLVM при кодогенерации
+                  \item Расхождения возникают, потому что эти инструкции не используются напрямую в LLVM при генерации кода
+                  \item В LLVM генерируются искуственные псевдоинструкции, которые содержат дополнительные свойства
               \end{itemize}
         \item Расширение \texttt{P}
               \begin{itemize}
@@ -463,14 +466,14 @@ X(a1) @ X(a2)
 \begin{frame}
     \frametitle{Результаты}
 
-    Таким образом, в рамках ВКР были достигнуты следующие результаты:\footnote[frame]{Код --- \url{https://github.com/Kakadu/llvm_vs_sail}. Имя пользователя: \href{https://github.com/s-khechnev}{s-khechnev}}
+    Таким образом, в рамках ВКР были достигнуты следующие результаты\footnote[frame]{Код --- \url{https://github.com/Kakadu/llvm_vs_sail}. Имя пользователя: \href{https://github.com/s-khechnev}{s-khechnev}}
     \begin{itemize}
-        \item Разработан прототип анализатора, который реализует следующие анализы:
+        \item Разработан прототип статического анализатора, который реализует следующие анализы
               \begin{itemize}
                   \item Поиск входных и выходных операндов инструкций
                   \item Определение, может ли инструкция читать или писать память
               \end{itemize}
-        \item С помощью статического анализатора провалидированы спецификации RISC-V ISA:
+        \item С помощью статического анализатора провалидированы спецификации RISC-V ISA
               \begin{itemize}
                   \item В LLVM v19 против sail-riscv
                   \item Расширения \texttt{P} (version 0.9.11-draft-20211209) в LLVM против sail-riscv-p
@@ -504,32 +507,28 @@ def ADD : ALU_rr<0b0000000, 0b000, !\colorbox{red!30}{"add"}!, Commutable=1>,
 \end{frame}
 
 \begin{frame}[fragile]
-    \frametitle{Дополнительный слайд. Инструкции RVV в LLVM}
-
-    \begin{lstlisting}[caption={}, language=json, escapechar=!, basicstyle=\fontsize{8}{8}\selectfont, numbers=left, numberstyle=\color{gray},xleftmargin=2em,framexleftmargin=1.5em]
+    \frametitle{Дополнительный слайд. Инструкции RVV в LLVM TableGen}
+    \vspace{-0.5em}
+    \begin{lstlisting}[caption={}, language=json, escapechar=!, basicstyle=\fontsize{9}{9}\selectfont, numbers=left, numberstyle=\color{gray},xleftmargin=2em,framexleftmargin=1.5em]
 "!\color{blue}{VAADD\_VV}!": {
-  "AsmString": "!\textbf{vaadd.vv}!\t$!\color{green}\textbf{vd}!, $!\color{red}\textbf{vs2}!, $!\color{red}\textbf{vs1}!$!\color{red}\textbf{vm}!",
-  "InOperandList": {
-    "args": [
-      [ { "def": "VR" }, "!\color{red}\textbf{vs2}!" ],
-      [ { "def": "VR" }, "!\color{red}\textbf{vs1}!" ],
-      [ { "def": "VMaskOp" }, "!\color{red}\textbf{vm}!" ] ] },
-  "OutOperandList": { "args": [[{ "def": "VR" }, "!\color{green}\textbf{vd}!" ]]}
+  "AsmString": "!\textbf{vaadd.vv}!\t$!\color{green}\textbf{vd}!, $!\color{red}\textbf{vs2}!, $!\color{red}\textbf{vs1}!, $!\color{red}\textbf{vm}!",
+  "InOperandList": { "args": [ [ { "def": "VR" }, "!\color{red}\textbf{vs2}!" ],
+                               [ { "def": "VR" }, "!\color{red}\textbf{vs1}!" ],
+                               [ { "def": "VMaskOp" }, "!\color{red}\textbf{vm}!" ] ] },
+  "OutOperandList": { "args": [[ { "def": "VR" }, "!\color{green}\textbf{vd}!" ]]}
 },
+
 "PseudoVAADD_VV_MF8": {
   "AsmString": "", // empty
   "BaseInstr": { "def": "!\color{blue}{VAADD\_VV}!" },
-  "InOperandList": {
-    "args": [
-      [ { "def": "VR" }, "!\color{red}\textbf{rd}!" ],
-      [ { "def": "VR" }, "!\color{red}\textbf{rs2}!" ],
-      [ { "def": "VR" }, "!\color{red}\textbf{rs1}!" ],
-      [ { "def": "ixlenimm" }, "!\color{red}\textbf{rm}!" ],
-      [ { "def": "AVL" }, "!\color{red}\textbf{vl}!" ],
-      [ { "def": "ixlenimm" }, "!\color{red}\textbf{sew}!" ],
-      [ { "def": "ixlenimm" }, "!\color{red}\textbf{policy}!" ] ] },
-  "OutOperandList": { "args": [[{ "def": "VR" }, "!\color{green}\textbf{rd}!" ]]},
-  "isCodeGenOnly": 1 // only for code gen
+  "InOperandList": { "args": [[ { "def": "VR" }, "!\color{red}\textbf{rd}!" ],
+                              [ { "def": "VR" }, "!\color{red}\textbf{rs2}!" ],
+                              [ { "def": "VR" }, "!\color{red}\textbf{rs1}!" ],
+                              [ { "def": "ixlenimm" }, "!\color{red}\textbf{rm}!" ],
+                              [ { "def": "AVL" }, "!\color{red}\textbf{vl}!" ],
+                              [ { "def": "ixlenimm" }, "!\color{red}\textbf{sew}!" ],
+                              [ { "def": "ixlenimm" }, "!\color{red}\textbf{policy}!" ] ] },
+  "OutOperandList": { "args": [[ { "def": "VR" }, "!\color{green}\textbf{rd}!" ]]},
 }
     \end{lstlisting}
 
@@ -545,54 +544,11 @@ def ADD : ALU_rr<0b0000000, 0b000, !\colorbox{red!30}{"add"}!, Commutable=1>,
 
 
 \begin{frame}[fragile]
-    \frametitle{Дополнительный слайд. Обращение инструкции к памяти}
-
-    \begin{itemize}
-        \item При трансляции виртуального адреса в физический может происходить чтение/запись памяти\footnote[frame]{\url{https://github.com/riscv/sail-riscv/blob/74c245ee2e501fd46dd1009c33a28b0a1992a9a7/doc/notes_Virtual_Memory.adoc\#simplified-call-graph}}
-
-        \item Чтение
-              \begin{itemize}
-                  \item Если TLB miss, тогда чтение таблицы страниц (page table) из памяти
-              \end{itemize}
-        \item Запись
-              \begin{itemize}
-                  \item Если необходимо обновить бит A (accessed) или D (dirty) у записи таблицы страниц
-              \end{itemize}
-    \end{itemize}
-
-
-    \begin{center}
-        \begin{tikzpicture}[
-                box/.style={draw, font=\scriptsize, rectangle, rounded corners, align=center},
-                arrow/.style={-Stealth, thick}
-            ]
-
-            \node[box] (translateAddr) {translateAddr};
-            \node[box, right=of translateAddr] (tlb_miss) {translate\_tlb\_miss};
-            \node[box, right=of tlb_miss] (pt_walk) {pt\_walk};
-            \node[box, right=of pt_walk] (read_ram) {read\_ram};
-            \node[box, below=of tlb_miss] (tlb_hit) {translate\_tlb\_hit};
-            \node[box, right=of tlb_hit] (write_ram) {write\_ram};
-
-            \draw[arrow] (translateAddr) -- (tlb_miss);
-            \draw[arrow] (tlb_miss) -- (pt_walk);
-            \draw[arrow] (pt_walk) -- (read_ram);
-
-            \draw[arrow] (translateAddr) -- (tlb_hit);
-            \draw[arrow] (tlb_hit) -- (write_ram);
-
-        \end{tikzpicture}    \end{center}
-
-\end{frame}
-
-
-\begin{frame}[fragile]
     \frametitle{Дополнительный слайд. Sail-riscv (1)}
 
-    \begin{lstlisting}[caption={Пример узла AST, представляющего инструкции \texttt{addi}, \texttt{slti}, \texttt{sltiu}, \texttt{andi}, \texttt{ori} и \texttt{xori} в sail-riscv}, language=sail, frame=single, label=itype]
+    \begin{lstlisting}[caption={Пример узла AST, представляющего инструкции \texttt{addi}, \texttt{slti}, \texttt{sltiu}, \texttt{andi}, \texttt{ori} и \texttt{xori}}, language=sail, frame=single, label=itype]
   enum iop = {RISCV_ADDI, RISCV_SLTI, RISCV_SLTIU,
               RISCV_XORI, RISCV_ORI, RISCV_ANDI}
-
   union clause ast = ITYPE : (bits(12), regidx, regidx, iop)
 \end{lstlisting}
 
@@ -602,10 +558,9 @@ def ADD : ALU_rr<0b0000000, 0b000, !\colorbox{red!30}{"add"}!, Commutable=1>,
     RISCV_SLTI  <-> 0b010,
     ...
   }
-
   mapping clause encdec = ITYPE(imm, rs1, rd, op)
     <-> imm @ rs1 @ encdec_iop(op) @ rd @ 0b0010011
-\end{lstlisting}
+    \end{lstlisting}
 
 
 \end{frame}
@@ -625,12 +580,14 @@ mapping clause assembly = ITYPE(imm, rs1, rd, op)
         ^ sep() ^ reg_name(rs1) ^ sep() ^ hex_bits_signed_12(imm)
 \end{lstlisting}
 
+    По \texttt{assembly} функциям определяются мнемоники инструкций, которые представляет узел AST
+
 \end{frame}
 
 \begin{frame}[fragile]
     \frametitle{Дополнительный слайд. Sail-riscv (3)}
 
-    \begin{lstlisting}[caption={Пример определения семантики исполнения инструкций \texttt{addi}, \texttt{slti}, \texttt{sltiu}, \texttt{andi}, \texttt{ori} и \texttt{xori}}, language=sail, frame=single]
+    \begin{lstlisting}[caption={Пример определения семантики исполнения инструкций \texttt{addi}, \texttt{slti}, \texttt{sltiu}, \texttt{andi}, \texttt{ori} и \texttt{xori}. Анализатор специализирует тело функции по параметру \texttt{op}}, language=sail, frame=single]
 function clause execute (ITYPE (imm, rs1, rd, op)) = {
   let rs1_val = X(rs1);               // read the rs1
   let immext : xlenbits = EXTS(imm);  // sign-extend imm
@@ -683,7 +640,45 @@ function clause execute (PEXT_32_16_MUL_ADD(rs2, rs1, rd, op)) = {
 
 \end{frame}
 
+\begin{frame}[fragile]
+    \frametitle{Дополнительный слайд. Обращение инструкции к памяти в sail-riscv}
+
+    \begin{itemize}
+        \item При трансляции виртуального адреса в физический может происходить чтение/запись памяти\footnote[frame]{\url{https://github.com/riscv/sail-riscv/blob/74c245ee2e501fd46dd1009c33a28b0a1992a9a7/doc/notes_Virtual_Memory.adoc\#simplified-call-graph}}
+
+        \item Чтение
+              \begin{itemize}
+                  \item Если TLB miss, тогда чтение таблицы страниц (page table) из памяти
+              \end{itemize}
+        \item Запись
+              \begin{itemize}
+                  \item Если необходимо обновить бит A (accessed) или D (dirty) у записи таблицы страниц
+              \end{itemize}
+    \end{itemize}
 
 
+    \begin{center}
+        \begin{tikzpicture}[
+                box/.style={draw, font=\scriptsize, rectangle, rounded corners, align=center},
+                arrow/.style={-Stealth, thick}
+            ]
+
+            \node[box] (translateAddr) {translateAddr};
+            \node[box, right=of translateAddr] (tlb_miss) {translate\_tlb\_miss};
+            \node[box, right=of tlb_miss] (pt_walk) {pt\_walk};
+            \node[box, right=of pt_walk] (read_ram) {read\_ram};
+            \node[box, below=of tlb_miss] (tlb_hit) {translate\_tlb\_hit};
+            \node[box, right=of tlb_hit] (write_ram) {write\_ram};
+
+            \draw[arrow] (translateAddr) -- (tlb_miss);
+            \draw[arrow] (tlb_miss) -- (pt_walk);
+            \draw[arrow] (pt_walk) -- (read_ram);
+
+            \draw[arrow] (translateAddr) -- (tlb_hit);
+            \draw[arrow] (tlb_hit) -- (write_ram);
+
+        \end{tikzpicture}    \end{center}
+
+\end{frame}
 
 \end{document}
