@@ -1,0 +1,684 @@
+% !TEX TS-program = xelatex
+% !BIB program = bibtex
+% !TeX spellcheck = ru_RU
+% !TEX root = talk.tex
+
+\documentclass
+  [ russian
+  , aspectratio=169 % Для защит онлайн лучше использовать разрешение не 4х3
+  ] {beamer}
+
+\usepackage{dblfnote}
+\usepackage{listings}
+\usepackage{hyperref}
+
+\input{preamble.tex}
+\makeatletter
+
+\input{pretitle.tex}
+\input{title.tex}
+
+\usepackage{xurl}
+
+\usetikzlibrary{calc,tikzmark}
+\newcommand\blfootnote[1]{
+    \begingroup
+    \renewcommand\thefootnote{}\footnote{#1}
+    \addtocounter{footnote}{-1}
+    \endgroup
+}
+
+\def\tikzHighlight(#1)(#2){
+  \draw[fill=gray,opacity=0.1]
+    ([shift={(-3pt,2ex)}]pic cs:#1)
+    rectangle
+    ([shift={(3pt,-0.65ex)}]pic cs:#2);
+}
+
+\newcommand{\academicGroup}{\my@title@group@ru}
+\newcommand{\advisorChair}{\my@title@chair@ru}
+% То, что в квадратных скобках, отображается внизу по центру каждого слайда.
+\title[Валидация RISC-V ISA]{\my@title@title@ru}
+% То, что в квадратных скобках, отображается в левом нижнем углу.
+\author[\my@title@author@ru]{\my@title@author@ru}
+\institute[СПбГУ]{}
+\date[9 июня 2025 г.]{}
+\newcommand{\supervisor}{\my@title@supervisor@ru}
+\newcommand{\supervisorPosition}{\my@title@supervisorPosition@ru}
+\newcommand{\consultant}{\my@title@consultant@ru}
+\newcommand{\consultantPosition}{\my@title@consultantPosition@ru}
+\newcommand{\reviewer}{\my@title@reviewer@ru}
+\newcommand{\reviewerPosition}{\my@title@reviewerPosition@ru}
+\newcommand{\defenseYear}{\my@title@year@ru}
+
+\makeatother
+\begin{document}
+{
+\setbeamertemplate{footline}{}
+% Лого университета или организации, отображается в шапке титульного листа
+\begin{frame}
+    \includegraphics[width=1.4cm]{figures/SPbGU_Logo.png}
+    \vspace{-35pt}
+    \hspace{-10pt}
+    \begin{center}
+        \begin{tabular}{c}
+            \scriptsize{Санкт-Петербургский государственный университет} \\
+            \scriptsize{\advisorChair}
+        \end{tabular}
+        \titlepage
+    \end{center}
+
+    \btVFill
+
+    {\scriptsize
+        % У научного руководителя должна быть указана научная степень
+        \textbf{Научный руководитель:}  \supervisorPosition~\supervisor \\
+        % Консультанта может и не быть. Должна быть указана должность или ученая степень
+        \textbf{Консультант:}  \consultantPosition~\consultant \\
+        % Для учебной практики не обязателен. Должна быть указана должность или ученая степень
+        \textbf{Рецензент:} \reviewerPosition~\reviewer \\
+        % TODO: добавить условие на включение рецензента в зависимости от вида отчета
+    }
+    \makeatother
+    \begin{center}
+        \vspace{5pt}
+        \scriptsize{Санкт-Петербург\\ \defenseYear}
+    \end{center}
+\end{frame}
+}
+
+% Risc-v на сегодняшний день является одной из наиболее активно развивающихся открытых архитектур.
+
+% Важную роль в экосистеме risc-v играет проект LLVM. LLVM --- инфраструктура для создания компиляторов. LLVM имеет множество целевых плафторм, в том числе и RISC-V. Спецификация ISA целевой архитектуры описывается в LLVM декларативно, на специальном декларативном языке, который называется TableGen.
+
+% Одноврменно, существует язык Sail, предназначенный для определения моделей процессорных архитектур. Существует формальная
+
+% Одноврменно, существует язык Sail, предназначенный для определения моделей процессорных архитектур. На Sail существует оффициальная, одобренная сообществом risc-v foundation модель risc-v isa. Модель представляет из себя поведенческую спецификацию.
+
+% Несмотря на наличие двух независимых спецификаций RISC-V ISA, в настоящее время не существует инструментов, позволяющих систематически сопоставлять эти спецификации и проверять их согласованность. Это создаёт риск накопления расхождений по мере их эволюции.
+% Наличие расхождений может приводить к некорректной генерации кода компилятором и снижению общей надёжности экосистемы RISC-V. Поэтому актуальна проблема валидации спецификаций относительно друг друга
+
+\begin{frame}{Введение}
+    \begin{itemize}
+        \item RISC-V --- открытая, расширяемая ISA (Instruction Set Architecture)
+
+        \item Sail\footnote[frame]{\url{https://github.com/rems-project/sail/}} --- язык для описания моделей процессорных архитектур. Позволяет задать семантику исполнения процессорных инструкций
+              \begin{itemize}
+                  \item Sail-riscv\footnote[frame]{\url{https://github.com/riscv/sail-riscv}} --- формальная, поведенческая спецификация RISC-V ISA
+              \end{itemize}
+
+        \item LLVM\footnote[frame]{\url{https://llvm.org}} --- инфраструктура для компиляторов
+              \begin{itemize}
+                  \item Спецификация целевой ISA описывается декларативно на TableGen
+              \end{itemize}
+
+        \item Актуальна проблема валидации спецификаций относительно друг друга
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Постановка задачи}
+    \textbf{Целью} работы является валидация спецификации RISC-V ISA в LLVM относительно Sail %озвученной выше
+
+    \vspace{1em}
+    \textbf{Задачи}:
+    \begin{itemize}
+        \item Разработать прототип статического анализатора, включающий следующие анализы
+              \begin{itemize}
+                  \item Поиск входных и выходных операндов инструкций
+                  \item Определение, может ли инструкция писать или читать память
+              \end{itemize}
+              % \item Протестировать статический анализатор
+        \item Используя статический анализатор, провалидировать спецификации RISC-V ISA
+              \begin{itemize}
+                  \item В LLVM v19 против sail-riscv\footnote[frame]{\url{https://github.com/riscv/sail-riscv/tree/05b845c91d1c1db7b361fc8d06e815b54ca0b07a}}
+                  \item Расширения \texttt{P} (version 0.9.11-draft-20211209) в LLVM против sail-riscv-p\footnote[frame]{\url{https://github.com/umcann123/sail-riscv-p}}
+                        % \begin{itemize}
+                        %     \item Для sail-riscv-p дополнительно определить для каждой инструкции какие CSR регистры читает и пишет
+                        % \end{itemize}
+              \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Обзор. Описание спецификации в LLVM}
+
+    \begin{itemize}
+        \item TableGen\footnote[frame]{\url{https://llvm.org/docs/TableGen/}} --- декларативный язык, который используется в LLVM для описания предметно-ориентированной информации
+        \item В частности для описания спецификации ISA целевых платформ
+        \item Для каждой инструкции описываются следующие свойства
+              \begin{itemize}
+                  \item Мнемоника
+                  \item Код инструкции
+                  \item \textbf{Входные}, \textbf{выходные операнды}
+                  \item Может ли \textbf{читать из памяти}, \textbf{писать в память}
+                  \item Коммутативность
+                  \item ...
+              \end{itemize}
+        \item Файлы с TableGen кодом имеют расширение \texttt{.td}
+        \item При помощи утилиты \texttt{llvm-tblgen} можно скомпилировать в \texttt{JSON}
+    \end{itemize}
+
+    % \begin{lstlisting}[caption={Описание инструкции \texttt{addi} на TableGen}, language={}, frame=single, mathescape = true]
+    % let isAsCheapAsAMove = 1 in
+    % def ADDI : RVInstI< ... , (outs GPR:$\dollar$rd),
+    %                   (ins GPR:$\dollar$rs1, simm12:$\dollar$imm12)
+    %                   "addi", "$\dollar$rd, $\dollar$rs1, $\dollar$imm12">
+    % \end{lstlisting}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Обзор. Sail-riscv}
+
+
+    \begin{itemize}
+        \item Sail-riscv\footnote[frame]{\url{https://github.com/riscv/sail-riscv}} --- это модель архитектуры RISC-V на Sail
+        \item Модель представляет из себя реализацию интерпретатора инструкций RISC-V ISA
+              % \item Модель можно скомпилировать в эмулятор на \C{} или \OCaml{}, который интерпретирует \texttt{elf} файлы
+
+              \begin{itemize}
+                  \item \texttt{AST}
+                  \item \texttt{encdec}, кодирование/декодирование кодов инструкций (opcode) в AST
+                  \item \texttt{assembly}, отображение AST в мнемоники
+                  \item \texttt{execute}, семантика исполнения инструкций
+              \end{itemize}
+
+    \end{itemize}
+
+
+    \begin{lstlisting}[caption={}, language=sail, frame=single]
+function clause execute( ADD(rs2, rs1, rd) ) = {
+    let rs1_val = X(rs1);                  // read the rs1
+    let rs2_val = X(rs2);                  // read the rs2
+    let result : xlenbits = rs1_val + rs2_val; // compute
+    X(rd) = result;                        // write result to rd
+    RETIRE_SUCCESS
+}
+    \end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{Реализация. Статический анализатор}
+
+    \begin{itemize}
+        \item Язык реализации --- \OCaml{}
+
+        \item \textbf{Sail}
+              \begin{enumerate}
+                  \item Входные данные --- \texttt{sail} файлы модели
+                  \item Синтаксический анализ файлов при помощи библиотеки компилятора Sail
+                  \item Статический анализ
+                        \begin{itemize}
+                            \item Определение мнемоник
+                            \item Специализация \texttt{execute} функций
+                            \item Анализ \texttt{execute} функций
+                        \end{itemize}
+              \end{enumerate}
+
+        \item \textbf{LLVM TableGen}
+              \begin{enumerate}
+                  \item Входные данные --- файлы спецификации на TableGen, скомпилированные\footnote[frame]{при помощи \texttt{llvm-tblgen}} в \texttt{JSON}
+                  \item Из \texttt{JSON} извлекается
+                        \begin{itemize}
+                            \item Входные и выходные операнды
+                            \item Может ли инструкция читать/писать память
+                        \end{itemize}
+              \end{enumerate}
+
+        \item Полученная информация сравнивается, и генерируется отчёт, содержащий расхождения
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]{Реализация. Поиск входных и выходных операндов}
+
+    \begin{lstlisting}[caption={}, language=sail, escapechar=!, label=rtype_speced]
+function clause execute ( ADD(rs2, rs1, rd) ) = {
+    let rs1_val = !\colorbox{green!50}{X(rs1)}!;                       // read the rs1
+    let rs2_val = !\colorbox{green!50}{X(rs2)}!;                       // read the rs2
+    let result : xlenbits = rs1_val + rs2_val; // compute
+    !\colorbox{yellow!50}{X(rd)}! = result                             // write to rd
+    RETIRE_SUCCESS
+}
+    \end{lstlisting}
+
+    % \begin{figure}[h]
+    %     \centering
+    %     \includegraphics[width=0.3\textwidth]{figures/graph_rtype_1.png}
+    % \end{figure}
+
+    \begin{center}
+        \begin{tikzpicture}[
+                scale=0.8,
+                transform shape,
+                node distance=1cm,
+                box/.style={
+                        draw,
+                        rectangle,
+                        rounded corners,
+                        minimum width=2cm,
+                        minimum height=1cm,
+                        align=center
+                    },
+                edge/.style={
+                        ->,
+                        >=Stealth,
+                        shorten >=1pt,
+                        shorten <=1pt
+                    },
+                every label/.style={
+                        font=\small
+                    }
+            ]
+
+            \node[box] (ADD) {ADD};
+            \node[box, fill=green!50, below left=1.5cm and 1cm of ADD] (rX) {X (read)};
+            \node[box, fill=yellow!50, below right=1.5cm and 1cm of ADD] (wX) {X (write)};
+
+            \draw[edge] (ADD) to [bend right=15] node[left, yshift=5pt] {rs1} (rX);
+            \draw[edge] (ADD) to [bend left=15, pos=0.6] node[right, yshift=-3pt] {rs2} (rX);
+            \draw[edge] (ADD) to node[auto] {rd} (wX);
+
+        \end{tikzpicture}
+    \end{center}
+
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Реализация. Обращение инструкции к памяти}
+
+    \begin{columns}
+        \begin{column}{0.6\textwidth}
+            \begin{itemize}
+                \item Функции \textbf{\texttt{read\_ram}} и \textbf{\texttt{write\_ram}} являются примитивными для работы с памятью
+                \item Для каждой \texttt{execute} функции проверялась достижимость вершин \textbf{\texttt{read\_ram}} и \textbf{\texttt{write\_ram}} в графе вызовов функций
+                      % \begin{lstlisting}[caption={}, language=Caml, escapechar=!]
+                      % function clause execute(LOAD(imm, rs1, rd)) =
+                      %     let addr : xlenbits = X(rs1) + EXTS(imm);
+                      %     let result : xlenbits = read_mem(addr, sizeof(xlen_bytes));
+                      %     X(rd) = result
+
+                      % \end{lstlisting}
+                      % \item Чтение или запись памяти может происходить при трансляции виртуального адреса в физический. Такие обращения игнорировались
+
+            \end{itemize}
+        \end{column}
+
+        \begin{column}{0.4\textwidth}
+            % \begin{figure}[h]
+            %     \centering
+            %     \includegraphics[width=0.4\textwidth]{figures/read_ram.png}
+            % \end{figure}
+
+            \begin{center}
+                \begin{tikzpicture}[
+                        node distance=1cm,
+                        box/.style={
+                                draw,
+                                rectangle,
+                                rounded corners,
+                                minimum width=2cm,
+                                minimum height=1cm,
+                                align=center
+                            },
+                        edge/.style={
+                                ->,
+                                >=Stealth,
+                                shorten >=1pt,
+                                shorten <=1pt
+                            },
+                        every label/.style={
+                                font=\small
+                            }
+                    ]
+
+                    \node[box] (LOAD) {LOAD};
+                    \node[box, below=of LOAD] (mem_read) {mem\_read};
+                    \node[box, below=of mem_read, fill=green!50] (read_ram) {read\_ram};
+
+                    \draw[edge] (LOAD) -- (mem_read);
+                    \draw[edge] (mem_read) -- (read_ram);
+
+                \end{tikzpicture}
+            \end{center}
+
+        \end{column}
+    \end{columns}
+
+\end{frame}
+
+\begin{frame}[fragile]{Реализация. Особенности sail-riscv-p (1)}
+
+    \begin{itemize}
+        \item RISC-V --- модульная архитектура, позволяющая расширять ISA при помощи расширений
+        \item Расширение \texttt{P} предназначено для ускорения целочисленных и fixed point вычислений
+        \item Sail-riscv-p\footnote[frame]{\url{https://github.com/umcann123/sail-riscv-p}} --- это форк sail-riscv с реализацией расширения \texttt{P}
+        \item Для 32-ух битного RISC-V операнды некоторых инструкций кодируют пару регистров
+              \begin{lstlisting}[caption={}, language=sail, frame=single]
+function clause execute(PEXT_64BITS_ADD_SUB(rs2, rs1, rd, op))
+...
+  rs1_val = X(rs1 | 0b00001) @ X(rs1 & 0b11110)
+...
+              \end{lstlisting}
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]{Реализация. Особенности sail-riscv-p (2)}
+
+
+    \begin{adjustwidth}{2em}{}
+        \begin{lstlisting}[caption={}, language=sail, frame=single]
+X(rs1 | 0b00001) @ X(rs1 & 0b11110)
+\end{lstlisting}
+    \end{adjustwidth}
+
+    \begin{enumerate}
+        \item Представление программы в ANF, A-Normal Form --- все аргументы вызовов функций константы или переменные
+              \begin{lstlisting}[caption={}, language=sail, frame=single]
+let a1 = rs1 | 0b00001 in
+let a2 = rs1 & 0b11110 in
+X(a1) @ X(a2)
+\end{lstlisting}
+        \item Определение входных и выходных операндов по графу вызовов
+        \item Построение и анализ data flow графа
+              %   \begin{figure}[h]
+              %       \centering
+              %       \includegraphics[scale=0.5]{figures/graph_data_flow.png}
+              %   \end{figure}
+
+              \begin{center}
+                  \begin{tikzpicture}[
+                          node distance=0.5cm,
+                          box/.style={
+                                  draw,
+                                  rectangle,
+                                  rounded corners,
+                                  minimum width=1.5cm,
+                                  minimum height=0.8cm,
+                                  align=center,
+                                  font=\sffamily
+                              },
+                          edge/.style={
+                                  ->,
+                                  >=Stealth,
+                                  thick
+                              }
+                      ]
+
+                      % Узлы графа
+                      \node[box] (rs1) {rs1};
+                      \node[box, below left=of rs1] (a1) {a1};
+                      \node[box, below right=of rs1] (a2) {a2};
+
+                      % Рёбра графа
+                      \draw[edge] (rs1) -- (a1);
+                      \draw[edge] (rs1) -- (a2);
+
+                  \end{tikzpicture}
+              \end{center}
+
+    \end{enumerate}
+
+\end{frame}
+
+\begin{frame}[fragile]{Реализация. CI и тесты}
+
+    \begin{enumerate}
+        \item Для статического анализатора написаны модульные и интеграционные тесты
+        \item Тестовое покрытие составляет 81.76\%
+        \item \texttt{CI} для проверки успешности сборки проекта и прохождения тестов
+    \end{enumerate}
+
+\end{frame}
+
+
+
+% \footnote[frame]{\url{https://github.com/kakadu/llvm_vs_sail/blob/master/Results.md}}
+\begin{frame}{Найденные расхождения}
+
+    \begin{itemize}
+        \item Расширение \texttt{C}
+              \begin{itemize}
+                  \item У 10 инструкций в sail-riscv регистр \texttt{SP} (stack pointer) не является явным аргументом
+                        \begin{itemize}
+                            \item \texttt{c.addi16sp}, \texttt{c.addi4spn}, \texttt{c.fldsp}, \texttt{c.flwsp}, \texttt{c.fsdsp}, \texttt{c.fswsp}, \texttt{c.ldsp}, \texttt{c.lwsp}, \texttt{c.sdsp}, \texttt{c.swsp}
+                        \end{itemize}
+              \end{itemize}
+        \item Расширение \texttt{V}
+              \begin{itemize}
+                  \item У 430 инструкций в sail-riscv операнд \texttt{vd} является входным операндом
+                        %   \item Возможно это ложно-положительные расхождения, потому что LLVM напрямую не использует эти инструкции при кодогенерации, а генерирует спецаильные инструкции для кодогенерации с дополнительными свойствами
+                        %   \item Расхождения такого вида возникают, потому что эти инструкции напрямую не используются в LLVM при кодогенерации
+                  \item Расхождения возникают, потому что эти инструкции не используются напрямую в LLVM при генерации кода
+                  \item В LLVM генерируются искуственные псевдоинструкции, которые содержат дополнительные свойства
+              \end{itemize}
+        \item Расширение \texttt{P}
+              \begin{itemize}
+                  \item В LLVM 22 инструкции читают регистр \texttt{vxsat} (используется как флаг переполнения)
+                  \item В sail-riscv-p 116 инструкций пишут в регистр \texttt{vxsat}
+              \end{itemize}
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Результаты}
+
+    Таким образом, в рамках ВКР были достигнуты следующие результаты\footnote[frame]{Код --- \url{https://github.com/Kakadu/llvm_vs_sail}. Имя пользователя: \href{https://github.com/s-khechnev}{s-khechnev}}
+    \begin{itemize}
+        \item Разработан прототип статического анализатора, который реализует следующие анализы
+              \begin{itemize}
+                  \item Поиск входных и выходных операндов инструкций
+                  \item Определение, может ли инструкция читать или писать память
+              \end{itemize}
+        \item С помощью статического анализатора провалидированы спецификации RISC-V ISA
+              \begin{itemize}
+                  \item В LLVM v19 против sail-riscv
+                  \item Расширения \texttt{P} (version 0.9.11-draft-20211209) в LLVM против sail-riscv-p
+              \end{itemize}
+
+    \end{itemize}
+
+
+\end{frame}
+
+\appendix
+
+\begin{frame}[fragile]
+    \frametitle{Дополнительный слайд. TableGen}
+
+    \begin{lstlisting}[caption={Пример описания инструкции \texttt{add} на декларативном языке TableGen}, language=tblgen, frame=single, escapechar=!]
+let hasSideEffects = 0, !\colorbox{blue!20}{mayLoad = 0}!, !\colorbox{blue!20}{mayStore = 0}! in
+class ALU_rr<bits<7> funct7, bits<3> funct3, string opcodestr,
+             bit Commutable = 0>
+    : RVInstR<funct7, funct3, OPC_OP, (!\colorbox{green!40}{outs}! GPR:$!\colorbox{green!40}{rd}!),
+                (!\colorbox{yellow!40}{ins}! GPR:$!\colorbox{yellow!40}{rs1}!, GPR:$!\colorbox{yellow!40}{rs2}!),
+                !\colorbox{red!30}{opcodestr}!, "$!\colorbox{green!40}{rd}!, $!\colorbox{yellow!40}{rs1}!, $!\colorbox{yellow!40}{rs2}!"> {
+  let isCommutable = Commutable;
+}
+
+def ADD : ALU_rr<0b0000000, 0b000, !\colorbox{red!30}{"add"}!, Commutable=1>,
+           ...
+
+    \end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Дополнительный слайд. Инструкции RVV в LLVM TableGen}
+    \vspace{-0.5em}
+    \begin{lstlisting}[caption={}, language=json, escapechar=!, basicstyle=\fontsize{9}{9}\selectfont, numbers=left, numberstyle=\color{gray},xleftmargin=2em,framexleftmargin=1.5em]
+"!\color{blue}{VAADD\_VV}!": {
+  "AsmString": "!\textbf{vaadd.vv}!\t$!\color{green}\textbf{vd}!, $!\color{red}\textbf{vs2}!, $!\color{red}\textbf{vs1}!, $!\color{red}\textbf{vm}!",
+  "InOperandList": { "args": [ [ { "def": "VR" }, "!\color{red}\textbf{vs2}!" ],
+                               [ { "def": "VR" }, "!\color{red}\textbf{vs1}!" ],
+                               [ { "def": "VMaskOp" }, "!\color{red}\textbf{vm}!" ] ] },
+  "OutOperandList": { "args": [[ { "def": "VR" }, "!\color{green}\textbf{vd}!" ]]}
+},
+
+"PseudoVAADD_VV_MF8": {
+  "AsmString": "", // empty
+  "BaseInstr": { "def": "!\color{blue}{VAADD\_VV}!" },
+  "InOperandList": { "args": [[ { "def": "VR" }, "!\color{red}\textbf{rd}!" ],
+                              [ { "def": "VR" }, "!\color{red}\textbf{rs2}!" ],
+                              [ { "def": "VR" }, "!\color{red}\textbf{rs1}!" ],
+                              [ { "def": "ixlenimm" }, "!\color{red}\textbf{rm}!" ],
+                              [ { "def": "AVL" }, "!\color{red}\textbf{vl}!" ],
+                              [ { "def": "ixlenimm" }, "!\color{red}\textbf{sew}!" ],
+                              [ { "def": "ixlenimm" }, "!\color{red}\textbf{policy}!" ] ] },
+  "OutOperandList": { "args": [[ { "def": "VR" }, "!\color{green}\textbf{rd}!" ]]},
+}
+    \end{lstlisting}
+
+    % \begin{tikzpicture}[use tikzmark]
+    %     %\tikzHighlight{s31}{e31};
+    %     \draw[fill=gray,opacity=0.1]
+    %     ([shift={(-3pt,2ex)}]pic cs:s31)
+    %     rectangle
+    %     ([shift={(3pt,-0.65ex)}]pic cs:e31);
+    % \end{tikzpicture}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+    \frametitle{Дополнительный слайд. Sail-riscv (1)}
+
+    \begin{lstlisting}[caption={Пример узла AST, представляющего инструкции \texttt{addi}, \texttt{slti}, \texttt{sltiu}, \texttt{andi}, \texttt{ori} и \texttt{xori}}, language=sail, frame=single, label=itype]
+  enum iop = {RISCV_ADDI, RISCV_SLTI, RISCV_SLTIU,
+              RISCV_XORI, RISCV_ORI, RISCV_ANDI}
+  union clause ast = ITYPE : (bits(12), regidx, regidx, iop)
+\end{lstlisting}
+
+    \begin{lstlisting}[caption={Функция кодирования/декодирования}, language=sail, frame=single]
+  mapping encdec_iop : iop <-> bits(3) = {
+    RISCV_ADDI  <-> 0b000,
+    RISCV_SLTI  <-> 0b010,
+    ...
+  }
+  mapping clause encdec = ITYPE(imm, rs1, rd, op)
+    <-> imm @ rs1 @ encdec_iop(op) @ rd @ 0b0010011
+    \end{lstlisting}
+
+
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Дополнительный слайд. Sail-riscv (2)}
+
+    \begin{lstlisting}[caption={Пример функции \texttt{assembly} (отображает узлы AST в мнемоники) для узла с листинга \protect\ref{itype}}, language=sail, frame=single]
+mapping itype_mnemonic : iop <-> string = {
+  RISCV_ADDI  <-> "addi",
+  RISCV_SLTI  <-> "slti",
+  ...
+}
+
+mapping clause assembly = ITYPE(imm, rs1, rd, op)
+  <-> itype_mnemonic(op) ^ spc() ^ reg_name(rd)
+        ^ sep() ^ reg_name(rs1) ^ sep() ^ hex_bits_signed_12(imm)
+\end{lstlisting}
+
+    По \texttt{assembly} функциям определяются мнемоники инструкций, которые представляет узел AST
+
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Дополнительный слайд. Sail-riscv (3)}
+
+    \begin{lstlisting}[caption={Пример определения семантики исполнения инструкций \texttt{addi}, \texttt{slti}, \texttt{sltiu}, \texttt{andi}, \texttt{ori} и \texttt{xori}. Анализатор специализирует тело функции по параметру \texttt{op}}, language=sail, frame=single]
+function clause execute (ITYPE (imm, rs1, rd, op)) = {
+  let rs1_val = X(rs1);               // read the rs1
+  let immext : xlenbits = EXTS(imm);  // sign-extend imm
+  let result : xlenbits = match op {  // compute the result
+    RISCV_ADDI  => rs1_val + immext,  // for addi, do addition
+    RISCV_SLTI  => EXTZ(rs1_val <_s immext), // ...etc
+    ...
+  };
+  X(rd) = result;                     // write result to rd
+  RETIRE_SUCCESS                      // successful termination
+}
+\end{lstlisting}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+    \frametitle{Дополнительный слайд. Sail-riscv (4)}
+
+    \begin{lstlisting}[caption={Пример \texttt{execute} функции, которая вызывает другой \texttt{execute}}, language=sail, escapechar=!, frame=single]
+function clause execute (C_ADDI4SPN(rdc, nzimm)) = {
+  let imm : bits(12) = (0b00 @ nzimm @ 0b00);
+  let rd = creg2reg_idx(rdc);
+  execute(ITYPE(imm, sp, rd, RISCV_ADDI))
+}
+    \end{lstlisting}
+
+    Добавляет ненулевое непосредственное значение, расширенное нулями и умноженное на 4, к регистру \texttt{SP} (stack pointer) и записывает результат в \texttt{rdc}.
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+    \frametitle{Дополнительный слайд. Sail-riscv (5)}
+
+    \begin{lstlisting}[caption={Пример необходимости удаления неиспользуемых выражений после специализации функции}, language=sail, escapechar=!, frame=single]
+function clause execute (PEXT_32_16_MUL_ADD(rs2, rs1, rd, op)) = {
+  let rs1_val = X(rs1); let rs2_val = X(rs2); let !\colorbox{green!50}{rd\_val}! = X(rd);
+  result : xlenbits = zeros();
+  foreach (i from 0 to (sizeof(xlen) - 32) by 32) {
+    let rs1_word = slice(rs1_val, i, 32);
+    let rs2_word = slice(rs2_val, i, 32);
+    let !\colorbox{green!50}{rd\_word}! = slice(!\colorbox{green!50}{rd\_val}!, i, 32);
+    result[(i+31)..i] = match op {
+      SMMWB  => smmw(rs1_word, slice(rs2_word, 0, 16)),
+      KMMAWB => kmmaw(rs1_word, slice(rs2_word, 0, 16), !\colorbox{green!50}{rd\_word}!),
+      ...
+    \end{lstlisting}
+
+
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Дополнительный слайд. Обращение инструкции к памяти в sail-riscv}
+
+    \begin{itemize}
+        \item При трансляции виртуального адреса в физический может происходить чтение/запись памяти\footnote[frame]{\url{https://github.com/riscv/sail-riscv/blob/74c245ee2e501fd46dd1009c33a28b0a1992a9a7/doc/notes_Virtual_Memory.adoc\#simplified-call-graph}}
+
+        \item Чтение
+              \begin{itemize}
+                  \item Если TLB miss, тогда чтение таблицы страниц (page table) из памяти
+              \end{itemize}
+        \item Запись
+              \begin{itemize}
+                  \item Если необходимо обновить бит A (accessed) или D (dirty) у записи таблицы страниц
+              \end{itemize}
+    \end{itemize}
+
+
+    \begin{center}
+        \begin{tikzpicture}[
+                box/.style={draw, font=\scriptsize, rectangle, rounded corners, align=center},
+                arrow/.style={-Stealth, thick}
+            ]
+
+            \node[box] (translateAddr) {translateAddr};
+            \node[box, right=of translateAddr] (tlb_miss) {translate\_tlb\_miss};
+            \node[box, right=of tlb_miss] (pt_walk) {pt\_walk};
+            \node[box, right=of pt_walk] (read_ram) {read\_ram};
+            \node[box, below=of tlb_miss] (tlb_hit) {translate\_tlb\_hit};
+            \node[box, right=of tlb_hit] (write_ram) {write\_ram};
+
+            \draw[arrow] (translateAddr) -- (tlb_miss);
+            \draw[arrow] (tlb_miss) -- (pt_walk);
+            \draw[arrow] (pt_walk) -- (read_ram);
+
+            \draw[arrow] (translateAddr) -- (tlb_hit);
+            \draw[arrow] (tlb_hit) -- (write_ram);
+
+        \end{tikzpicture}    \end{center}
+
+\end{frame}
+
+\end{document}
